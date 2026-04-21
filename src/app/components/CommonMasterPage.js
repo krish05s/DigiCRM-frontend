@@ -1,0 +1,379 @@
+"use client";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import axios from "redaxios";
+import Link from "next/link";
+import { toast } from "react-toastify";
+
+
+export default function CommonMasterPage({
+  title,
+  listApi,
+  saveApi,
+  parentListApi = "",
+  breadcrumbs,
+  showCheckboxColumn = false,
+  extraColumn = null,
+  showRadio = false,
+  radioField = "is_parent",
+}) {
+  const [data, setData] = useState([]);
+  const [formName, setFormName] = useState("");
+  const [editId, setEditId] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [isParent, setIsParent] = useState(false);
+  const [isDefault, setIsDefault] = useState(false);
+  const [parentOptions, setParentOptions] = useState([]);
+  const [selectedParent, setSelectedParent] = useState("");
+  const [selectedExtraValue, setSelectedExtraValue] = useState("");
+  const [scrollOffsets, setScrollOffsets] = useState({});
+  const [parentDesignation, setParentDesignation] = useState("");
+  const [name, setName] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+
+  const searchTimeout = useRef(null);
+
+  //  PAGINATION ADDED HERE
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
+  const fetchData = useCallback(
+    async (parentDesignation = "", name = "", status = "") => {
+      try {
+        const params = {};
+        if (parentDesignation) params.search = parentDesignation;
+        if (name) params.search2 = name;
+        if (status) params.status = status;
+
+        const res = await axios.get(listApi, { params });
+        setData(res.data);
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    }, [listApi]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      fetchData(parentDesignation, name, statusFilter);
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [parentDesignation, name, statusFilter]);
+
+  const fetchParentOptions = useCallback(async () => {
+    if (!parentListApi) return;
+    try {
+      const res = await axios.get(parentListApi);
+      setParentOptions(res.data);
+    } catch (err) {
+      console.error("Error fetching parent options:", err);
+    }
+  }, [parentListApi]);
+
+  useEffect(() => {
+    fetchData();
+    if (showRadio && parentListApi) fetchParentOptions();
+  }, [fetchData, showRadio, parentListApi, fetchParentOptions]);
+
+  useEffect(() => {
+    if (showForm && showRadio && parentListApi) fetchParentOptions();
+  }, [showForm, showRadio, parentListApi, fetchParentOptions]);
+
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const payload = { parent_designation: selectedParent || "", name: formName };
+
+    try {
+      if (editId) {
+        await axios.put(`${saveApi}/update/${editId}`, payload);
+        toast.success("Updated successfully");
+      } else {
+        await axios.post(`${saveApi}/insert`, payload);
+        toast.success("Inserted successfully");
+      }
+      resetForm();
+      fetchData();
+    } catch (err) {
+      console.error("Error saving:", err);
+      toast.error("Error saving data");
+    }
+  };
+
+  const resetForm = () => {
+    setFormName("");
+    setSelectedParent("");
+    setEditId(null);
+    setIsParent(false);
+    setIsDefault(false);
+    setSelectedExtraValue("");
+    setShowForm(false);
+  };
+
+  const handleToggle = async (id, currentStatus) => {
+    try {
+      await axios.put(`${saveApi}/status/${id}`, {
+        status: currentStatus === 1 ? 0 : 1,
+      });
+      setData((prevData) =>
+        prevData.map((item) =>
+          item.id === id ? { ...item, status: currentStatus === 1 ? 0 : 1 } : item
+        )
+      );
+    } catch (err) {
+      console.error("Error updating status:", err);
+    }
+  };
+
+  const handleEdit = (item) => {
+    setEditId(item.id);
+    setFormName(item.name);
+    setSelectedParent(item.parent_designation || "");
+    setIsParent(item[radioField] === 1);
+    setIsDefault(item.default === 1);
+    if (extraColumn && item[extraColumn.key]) {
+      setSelectedExtraValue(item[extraColumn.key]);
+    }
+    setShowForm(true);
+  };
+
+  const handleCheckboxChange = async (id, currentDefault) => {
+    const newDefault = currentDefault === 1 ? 0 : 1;
+    try {
+      await axios.put(`${saveApi}/default/${id}`, { default: newDefault });
+      setData((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, default: newDefault } : item
+        )
+      );
+    } catch (err) {
+      console.error("Error updating checkbox:", err);
+    }
+  };
+
+  //  PAGINATION CALCULATIONS
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentData = data.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(data.length / itemsPerPage);
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) setCurrentPage(page);
+  };
+
+  return (
+    <>
+      <div className="bg-gray-100">
+        {/* Header */}
+        <div className="bg-white w-full rounded-sm shadow-lg p-3 mt-1 mb-5 flex justify-between items-center">
+          <div className="flex items-center text-gray-700">
+            <span>
+              <Link href="/dashboard" className="mx-3 text-xl text-gray-400 hover:text-indigo-600">
+                <i className="bi bi-house"></i>
+              </Link>
+            </span>
+            <i className="bi bi-chevron-right"></i>
+            <span>
+              <Link href="/setup" className="mx-3 text-gray-700 hover:text-orange-500">
+                Setup
+              </Link>
+            </span>
+            <i className="bi bi-chevron-right"></i>
+            {breadcrumbs.map((b, i) => (
+              <span key={i} className="flex items-center text-gray-700 hover:text-orange-500">
+                <span className="mx-3">{b}</span>
+                {i < breadcrumbs.length - 1 && <i className="bi bi-chevron-right"></i>}
+              </span>
+            ))}
+          </div>
+
+          <div>
+            <button type="button" onClick={() => setShowForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-sm shadow hover:bg-orange-600">
+              + Add {title}
+            </button>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="mx-6">
+          {extraColumn && (
+            <select value={parentDesignation} onChange={(e) => setParentDesignation(e.target.value)} className="mx-2 bg-white  w-60 p-2 border border-gray-300 rounded-sm outline-none focus:ring-1 focus:ring-orange-200 text-gray-400" required>
+              <option value="">Select Parent Designation</option>
+              {parentOptions.map((opt) => (
+                <option key={opt.id} value={opt.name}>
+                  {opt.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <input type="text" placeholder={`Enter ${title}`} className="p-2 w-50 mb-3 border text-gray-400 bg-white  border-gray-300 rounded-sm outline-none focus:ring-1 focus:ring-orange-200 " value={name} onChange={(e) => setName(e.target.value)} />
+
+          <select className="mx-3 w-48 p-2 border text-gray-400 bg-white rounded-sm border-gray-300 outline-none focus:ring-1 focus:ring-orange-200" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="">Select Status</option>
+            <option value="1">Active</option>
+            <option value="0">Inactive</option>
+          </select>
+
+          <button type="button" onClick={() => { setParentDesignation(""); setName(""); setStatusFilter(""); fetchData(); }}
+            className="border rounded-sm p-0.5 border-gray-200  text-md text-center px-2   bg-gray-200 text-gray-700 hover:bg-gray-300">
+            Clear
+          </button>
+        </div>
+
+        {/* Table */}
+        <form className="p-1 mx-5">
+          <div className="bg-white shadow-md rounded-sm p-1 border border-gray-200">
+            <table className="mx-15 w-11/12 text-sm text-left text-gray-700 border-collapse mt-2 mb-2">
+              <thead className="bg-gray-50 text-gray-900 uppercase text-xs">
+                <tr>
+                  <th className="py-3 px-5 w-10">#</th>
+                  {extraColumn && (
+                    <th className="py-3 px-4 text-center">
+                      {extraColumn.label}
+                      
+                    </th>
+                  )}
+                  <th className="py-3 px-4">
+                    {title} Name 
+                  </th>
+                  {showCheckboxColumn && (
+                    <th className="py-3 px-4 text-center">Select</th>
+                  )}
+                  <th className="py-3 px-4 text-center">Status</th>
+                  <th className="py-3 px-4 text-center">Action</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {currentData.map((item, i) => (
+                  <tr key={item.id} className={`hover:bg-gray-50 transition`}>
+                    <td className="py-1 px-4 text-gray-600">
+                      {(currentPage - 1) * itemsPerPage + i + 1}
+                    </td>
+                    {extraColumn && (
+                      <td className="py-2 px-4 text-center">{item[extraColumn.key] || "-"}</td>
+                    )}
+                    <td className="py-1 px-4 font-medium text-gray-800">{item.name}</td>
+
+                    {showCheckboxColumn && (
+                      <td className="py-2 px-4 text-center">
+                        <input type="checkbox" checked={item.default === 1} onChange={() => handleCheckboxChange(item.id, item.default)} className="w-4 h-4 cursor-pointer" />
+                      </td>
+                    )}
+
+                    <td className="py-1 px-4 text-center">
+                      <label className="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only" checked={item.status === 1} onChange={() => handleToggle(item.id, item.status)} />
+                        <div className={`relative w-12 h-6 rounded-full transition-all duration-300 ${item.status === 1 ? "bg-orange-500" : "bg-gray-300"}`}>
+                          <div className={`absolute top-1 left-1 w-4 h-3 bg-white rounded-full transition-all duration-300 ${item.status === 1 ? "translate-x-6" : "translate-x-1"}`}>
+                          </div>
+                        </div>
+                      </label>
+                    </td>
+
+                    <td className="py-1 px-4 text-center">
+                      <button type="button" onClick={() => handleEdit(item)} className="text-gray-700 hover:text-blue-700">
+                        <i className="bi bi-pencil-square text-lg"></i>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-3 border-gray-200 bg-white rounded-b-lg">
+                {/* Previous Button */}
+                <button type="button" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="px-4 py-2 text-sm font-medium rounded-sm  bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                  Previous
+                </button>
+
+                {/* Page Info Centered */}
+                <span className="text-sm text-gray-600">
+                  Page <span className="font-semibold">{currentPage}</span> of{" "}
+                  <span className="font-semibold">{totalPages}</span>
+                </span>
+
+                {/* Next Button */}
+                <button type="button" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-4 py-2 text-sm font-medium rounded-sm border bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-70 disabled:cursor-not-allowed">
+                  Next
+                </button>
+              </div>
+            )}
+
+          </div>
+        </form>
+
+        {/* Modal remains same */}
+        {showForm && (
+          <div className="fixed inset-0 bg-gray-900/30 z-50 flex justify-center items-center">
+            <div className="bg-white rounded-sm shadow-lg p-6 w-[400px] relative">
+              <button type="button" onClick={() => { setShowForm(false); setFormName(""); setEditId(null); }}
+                className="absolute top-2 right-4 text-xl text-orange-500 hover:text-orange-600">
+                ✕
+              </button>
+
+              <h3 className="text-lg mb-3">
+                {editId ? "Edit" : "Add"} {title}
+              </h3>
+              <form onSubmit={handleSubmit}>
+                {showRadio && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Is Parent?
+                    </label>
+                    <div className="flex gap-4 items-center">
+                      <label className="flex items-center gap-1">
+                        <input type="radio" name="isParent" checked={isParent === true} onChange={() => setIsParent(true)} />
+                        <span>Yes</span>
+                      </label>
+                      <label className="flex items-center gap-1">
+                        <input type="radio" name="isParent" checked={isParent === false} onChange={() => setIsParent(false)} />
+                        <span>No</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {showRadio && isParent && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Select Parent
+                    </label>
+                    <select value={selectedParent} onChange={(e) => setSelectedParent(e.target.value)} className="border p-2 w-full rounded-sm">
+                      <option value="">-- Select Parent --</option>
+                      {parentOptions.map((opt) => (
+                        <option key={opt.id} value={opt.name}>
+                          {opt.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {title} Name
+                </label>
+                <input type="text" placeholder="Enter name" className="border p-2 w-full rounded-sm mb-3 outline-none focus:ring-orange-200 focus:ring-1 border-gray-300" value={formName} onChange={(e) => setFormName(e.target.value)} required />
+
+                <div className="flex justify-end gap-2">
+                  <button type="button" onClick={() => { setShowForm(false); setFormName(""); setEditId(null); }}
+                    className="px-4 py-2 bg-gray-200 rounded-sm text-gray-700 hover:bg-gray-300">
+                    Cancel
+                  </button>
+                  <button type="submit" className="bg-orange-500 text-white px-4 py-1.5 rounded-sm hover:bg-orange-600  ">
+                    Save
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
