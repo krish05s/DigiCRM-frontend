@@ -636,14 +636,14 @@ export default function AddCustomer() {
                             <div className="grid grid-cols-3 gap-4 mb-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Company Name *</label>
-                                    <select name="company_name" className="w-full border rounded p-2" value={formData.company_name} onChange={handleChange}>
-                                        <option value="">Select Company</option>
+                                    <input name="company_name" className="w-full border rounded p-2" placeholder="Enter Company Name" value={formData.company_name} onChange={handleChange} />
+                                        {/* <option value="">Select Company</option>
                                         {companyname.map((item) => (
                                             <option key={item.id} value={item.id}>
                                                 {item.organization_name}
                                             </option>
-                                        ))}
-                                    </select>
+                                        ))} */}
+
 
                                 </div>
                                 <div>

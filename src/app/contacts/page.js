@@ -9,7 +9,7 @@ import Header from "../components/header";
 export default function Page() {
 
     const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
-    
+
     const [formdata, setFormData] = useState({
         customer_id: "",
         company_name: "",
@@ -52,7 +52,7 @@ export default function Page() {
                     search6: filters.contact_designation,
                 },
             });
-           setContacts(res.data.data || []);
+            setContacts(res.data.data || []);
         } catch {
             toast.error("Failed to load contacts");
         }
@@ -72,7 +72,7 @@ export default function Page() {
     }, []);
 
     useEffect(() => {
-        axios.get(`${API_BASE}/api/organizations/organization-name`)
+        axios.get(`${API_BASE}/api/customers/company-names`)
             .then((res) => setCompanyname(res.data.data || res.data))
             .catch(() => setCompanyname([]));
     }, []);
@@ -150,27 +150,27 @@ export default function Page() {
     };
 
     const handleEdit = async (item) => {
-        const company = companyname.find(
-            c => c.organization_name === item.company_name
-        );
 
         setEditId(item.id);
 
-        // FIRST load customers
-        await fetchCustomersByCompany(company?.id);
+        // load customers based on company string
+        await fetchCustomersByCompany(item.company_name);
 
-        // THEN set formdata
+        // set form data
         setFormData({
-            customer_id: item.customer_id,   // ✅ ID from DB
-            company_name: company?.id || "",
+
+            customer_id: item.customer_id,
+            company_name: item.company_name,   // string
             customer_name: item.customer_name,
             contact_person: item.contact_person,
             contact_number: item.contact_number,
             email: item.email,
-            contact_designation: item.contact_designation,
+            contact_designation: item.contact_designation
+
         });
 
         setShowForm(true);
+
     };
 
 
@@ -191,7 +191,7 @@ export default function Page() {
 
     const currentData = contacts.slice(indexOfFirstItem, indexOfLastItem);
 
-const totalPages = Math.ceil(contacts.length / itemsPerPage);
+    const totalPages = Math.ceil(contacts.length / itemsPerPage);
 
     const handlePageChange = (page) => {
 
@@ -236,8 +236,8 @@ const totalPages = Math.ceil(contacts.length / itemsPerPage);
                     <select name="company_name" value={filters.company_name} onChange={handleFilterCompanyChange} className="mx-2 bg-white text-gray-500 w-53 p-2 border border-gray-300 rounded-sm outline-none focus:ring-1 focus:ring-orange-200">
                         <option value="">Select Company Name</option>
                         {companyname.map((item) => (
-                            <option key={item.id} value={item.id}>
-                                {item.organization_name}
+                            <option key={item.company_name} value={item.company_name}>
+                                {item.company_name}
                             </option>
                         ))}
                     </select>
@@ -290,10 +290,10 @@ const totalPages = Math.ceil(contacts.length / itemsPerPage);
                                         Contact Person
                                     </th>
                                     <th className="py-3 px-4 text-center">
-                                        Contact Number                           
+                                        Contact Number
                                     </th>
                                     <th className="py-3 px-4 text-center">Email
-                                                                      </th>
+                                    </th>
                                     <th className="py-3 px-4 text-center">
                                         Contact Designation
                                     </th>
@@ -388,8 +388,8 @@ const totalPages = Math.ceil(contacts.length / itemsPerPage);
                                 <select name="company_name" value={formdata.company_name} onChange={handleFormCompanyChange} className="w-full border rounded-sm p-2 mb-5 outline-none focus:ring-1 focus:ring-orange-200 border-gray-300 ">
                                     <option value="">Select Company Name</option>
                                     {companyname.map((item) => (
-                                        <option key={item.id} value={item.id}>
-                                            {item.organization_name}
+                                        <option key={item.company_name} value={item.company_name}>
+                                            {item.company_name}
                                         </option>
                                     ))}
                                 </select>
@@ -436,7 +436,7 @@ const totalPages = Math.ceil(contacts.length / itemsPerPage);
                                 <select name="contact_designation" value={formdata.contact_designation} onChange={handleChange} className="w-full border rounded-sm p-2 mb-5 outline-none focus:ring-1 focus:ring-orange-200 border-gray-300 ">
                                     <option value="">Select Contact Designation</option>
                                     {designations.map((item) => (
-                                        <option key={item.id || item.name} value={item.name}>
+                                        <option key={item.id || item.name} value={item.id}>
                                             {item.name}
                                         </option>
                                     ))}

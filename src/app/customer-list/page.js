@@ -169,7 +169,7 @@ const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
           <select name="industry" value={filters.industry} onChange={handleChange} className="border  text-grey-400 bg-white border-gray-300 rounded-sm px-3 py-2 w-56 mx-2 focus:ring-orange-200 outline-none   focus:ring-1">
             <option value="">Select Industry</option>
             {industries.map((item, index) => (
-              <option key={item.id} value={item.name}>
+              <option key={item.id} value={item.id}>
                 {item.name}
               </option>
             ))}
