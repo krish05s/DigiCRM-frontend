@@ -81,9 +81,7 @@ export default function CustomerList() {
         ...filters,
       }).toString();
 
-      const res = await axios.get(
-        `${API_BASE}/api/customers/get-customers?${query}`,
-      );
+      const res = await axios.get(`${API_BASE}/api/customers/get-customers?${query}`);
 
       const result = res.data;
 
@@ -95,7 +93,7 @@ export default function CustomerList() {
     } catch (error) {
       console.error("Error fetching customers:", error);
     }
-  };
+  }
 
   // Fetching Active Industries
   useEffect(() => {

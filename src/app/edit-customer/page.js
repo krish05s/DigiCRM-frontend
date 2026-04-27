@@ -651,7 +651,8 @@ export default function AddCustomer() {
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
                     Company Name <span className="text-red-400">*</span>
                   </label>
-                  <select
+                  <input name="company_name" className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all" placeholder="Enter Company Name" value={formData.company_name} onChange={handleChange} />
+                  {/* <select
                     name="company_name"
                     value={formData.company_name}
                     onChange={handleChange}
@@ -663,7 +664,7 @@ export default function AddCustomer() {
                         {item.organization_name}
                       </option>
                     ))}
-                  </select>
+                  </select> */}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
