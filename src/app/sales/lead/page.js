@@ -231,7 +231,6 @@ export default function Page() {
         },
       });
 
-
       const now = new Date();
 
       const date = now.toISOString().split("T")[0];
@@ -241,10 +240,7 @@ export default function Page() {
 
       const fileName = `Leads_${activeTab}_(${date})_${time}.pdf`;
 
-
-      doc.save(
-        fileName,
-      );
+      doc.save(fileName);
       toast.success("PDF exported successfully");
       setShowExportMenu(false);
     } catch (err) {
@@ -538,7 +534,7 @@ export default function Page() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       setViewLead(res.data.lead);
@@ -691,12 +687,12 @@ export default function Page() {
   const filteredLeads = hasActiveFilters
     ? leads
     : leads.filter((l) => {
-      if (activeTab === "Pending") {
-        return l.status !== "Won" && l.status !== "Lost";
-      }
+        if (activeTab === "Pending") {
+          return l.status !== "Won" && l.status !== "Lost";
+        }
 
-      return l.status === activeTab;
-    });
+        return l.status === activeTab;
+      });
 
   // counts
   const pendingCount = leads.filter((l) => l.status === "Pending").length;
@@ -753,7 +749,7 @@ export default function Page() {
           { params: { status: 1 } },
         );
         setLeadSource(res.data);
-      } catch { }
+      } catch {}
     };
 
     fetchSource();
@@ -768,7 +764,7 @@ export default function Page() {
           { params: { status: 1 } },
         );
         setLeadCategory(res.data);
-      } catch { }
+      } catch {}
     };
 
     fetchCategory();
@@ -782,7 +778,7 @@ export default function Page() {
           params: { status: 1 },
         });
         setCategory(res.data);
-      } catch { }
+      } catch {}
     };
 
     fetchProductCategory();
@@ -842,30 +838,30 @@ export default function Page() {
               </Link>
             </p>
           </div>
-
           {/* Export Button */}
           <div className="flex items-center gap-3">
             {/* Export Button */}
             <div className="relative" ref={exportRef}>
               <button
                 onClick={() => setShowExportMenu((prev) => !prev)}
-                className="flex items-center gap-2 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-gray-600 hover:text-blue-700 px-4 py-2 rounded-xl text-sm font-semibold tracking-wide transition-all shadow-sm"
+                className="flex items-center gap-2 border-orange-300 bg-orange-50 text-orange-500 px-4 py-2 rounded-sm text-sm font-semibold tracking-wide transition-all shadow-sm"
               >
                 <i className="bi bi-download text-base"></i>
                 Export
                 <i
-                  className={`bi bi-chevron-down text-xs transition-transform duration-200 ${showExportMenu ? "rotate-180" : ""
-                    }`}
+                  className={`bi bi-chevron-down text-xs transition-transform duration-200 ${
+                    showExportMenu ? "rotate-180" : ""
+                  }`}
                 ></i>
               </button>
 
               {showExportMenu && (
-                <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
+                <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-sm shadow-xl border border-gray-100 overflow-hidden z-50">
                   <button
                     onClick={exportToExcel}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-all"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-lg bg-green-100 flex items-center justify-center">
                       <i className="bi bi-file-earmark-excel text-green-600 text-sm"></i>
                     </div>
                     Export Excel
@@ -889,7 +885,7 @@ export default function Page() {
             {/* Add Lead Button */}
             <Link
               href="/sales/lead/add-lead"
-              className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow-md transition-all"
+              className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-sm text-sm font-semibold shadow-md transition-all"
             >
               + ADD LEAD
             </Link>
@@ -1037,10 +1033,11 @@ export default function Page() {
           <div className="flex items-center gap-8 px-6 pt-4 border-b border-gray-100">
             <button
               onClick={() => setActiveTab("Pending")}
-              className={`pb-3 px-3 text-sm font-medium relative cursor-pointer transition-all ${activeTab === "Pending"
-                ? "text-blue-600"
-                : "text-gray-400 hover:text-gray-600"
-                }`}
+              className={`pb-3 px-3 text-sm font-medium relative cursor-pointer transition-all ${
+                activeTab === "Pending"
+                  ? "text-blue-600"
+                  : "text-gray-400 hover:text-gray-600"
+              }`}
             >
               {" "}
               Pending
@@ -1054,8 +1051,9 @@ export default function Page() {
 
             <button
               onClick={() => setActiveTab("Won")}
-              className={`pb-3 text-sm font-medium cursor-pointer relative ${activeTab === "Won" ? "text-green-600" : "text-gray-500"
-                }`}
+              className={`pb-3 text-sm font-medium cursor-pointer relative ${
+                activeTab === "Won" ? "text-green-600" : "text-gray-500"
+              }`}
             >
               Won
               <span className="ml-2 bg-green-100 text-green-600 text-xs px-2 py-0.5 rounded-full">
@@ -1068,8 +1066,9 @@ export default function Page() {
 
             <button
               onClick={() => setActiveTab("Lost")}
-              className={`pb-3 text-sm font-medium relative ${activeTab === "Lost" ? "text-red-600" : "text-gray-500"
-                }`}
+              className={`pb-3 text-sm font-medium relative ${
+                activeTab === "Lost" ? "text-red-600" : "text-gray-500"
+              }`}
             >
               Lost
               <span className="ml-2 bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">
@@ -1088,7 +1087,8 @@ export default function Page() {
               <div className="text-center py-10 text-gray-400">Loading...</div>
             ) : (
               // <div className="overflow-x-auto overflow-y-auto max-h-[500px]">
-              <div className="overflow-x-auto">
+              // <div className="overflow-x-auto  overflow-y-scroll max-h-[500px] custom-scroll">
+              <div className="overflow-x-auto overflow-y-scroll max-h-[500px] custom-scroll">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
@@ -1101,7 +1101,7 @@ export default function Page() {
                       <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                         Customer Name
                       </th>
-                      <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider ">
                         Lead Title
                       </th>
                       <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
@@ -1148,7 +1148,9 @@ export default function Page() {
                             {lead.customer_name}
                           </td>
 
-                          <td className="px-2">{lead.lead_title}</td>
+                          <td className="py-3 px-2 w-46 max-w-46 truncate">
+                            {lead.lead_title}
+                          </td>
 
                           <td className="text-gray-500 px-3">
                             {lead.product_category || "-"}
@@ -1166,23 +1168,23 @@ export default function Page() {
                           >
                             {lead.assignee
                               ? String(lead.assignee)
-                                .split(",")
-                                .map((name, index) => {
-                                  const letter = name
-                                    .trim()
-                                    .charAt(0)
-                                    .toUpperCase();
+                                  .split(",")
+                                  .map((name, index) => {
+                                    const letter = name
+                                      .trim()
+                                      .charAt(0)
+                                      .toUpperCase();
 
-                                  return (
-                                    <div
-                                      key={index}
-                                      title={name.trim()}
-                                      className="px-3 py-1.5 bg-blue-800 text-white rounded-full font-semibold text-sm flex justify-center items-center min-w-[28px] text-center select-none"
-                                    >
-                                      {letter}
-                                    </div>
-                                  );
-                                })
+                                    return (
+                                      <div
+                                        key={index}
+                                        title={name.trim()}
+                                        className="px-3 py-1.5 bg-blue-800 text-white rounded-full font-semibold text-sm flex justify-center items-center min-w-[28px] text-center select-none"
+                                      >
+                                        {letter}
+                                      </div>
+                                    );
+                                  })
                               : "-"}
                           </td>
 
@@ -1194,10 +1196,11 @@ export default function Page() {
                                     openUpdateModal(lead);
                                   }
                                 }}
-                                className={`${lead.status === "Pending"
-                                  ? "cursor-pointer text-blue-800"
-                                  : "text-gray-400 cursor-not-allowed"
-                                  }`}
+                                className={`${
+                                  lead.status === "Pending"
+                                    ? "cursor-pointer text-blue-800"
+                                    : "text-gray-400 cursor-not-allowed"
+                                }`}
                               >
                                 {new Date(
                                   lead.next_follow_up_date,
@@ -1222,11 +1225,12 @@ export default function Page() {
                                   setShowModal(true);
                                 }}
                                 className={`w-9 h-9 rounded-full border flex items-center justify-center mx-auto
-                                                                          ${lead.status ===
-                                    "Pending"
-                                    ? "hover:bg-gray-100 cursor-pointer"
-                                    : "bg-gray-100 cursor-not-allowed opacity-60"
-                                  }`}
+                                                                          ${
+                                                                            lead.status ===
+                                                                            "Pending"
+                                                                              ? "hover:bg-gray-100 cursor-pointer"
+                                                                              : "bg-gray-100 cursor-not-allowed opacity-60"
+                                                                          }`}
                               >
                                 <i className="bi bi-plus text-lg"></i>
                               </button>
@@ -1258,19 +1262,22 @@ export default function Page() {
                               }}
                               className={`border rounded-sm px-3 py-1 text-xs font-semibold outline-none cursor-pointer
 
-                                ${lead.status === "Pending"
-                                  ? "border-gray-200 bg-gray-50 text-gray-700 cursor-pointer"
-                                  : ""
+                                ${
+                                  lead.status === "Pending"
+                                    ? "border-gray-200 bg-gray-50 text-gray-700 cursor-pointer"
+                                    : ""
                                 }
 
-                                ${lead.status === "Won"
-                                  ? "border-green-200 bg-green-50 text-green-700 cursor-pointer"
-                                  : ""
+                                ${
+                                  lead.status === "Won"
+                                    ? "border-green-200 bg-green-50 text-green-700 cursor-pointer"
+                                    : ""
                                 }
 
-                                ${lead.status === "Lost"
-                                  ? "border-red-200 bg-red-50 text-red-700 cursor-pointer"
-                                  : ""
+                                ${
+                                  lead.status === "Lost"
+                                    ? "border-red-200 bg-red-50 text-red-700 cursor-pointer"
+                                    : ""
                                 }
                                 `}
                             >
@@ -1562,10 +1569,11 @@ export default function Page() {
                 onClick={handleSubmit}
                 disabled={btnLoading}
                 className={`px-6 py-2 text-sm font-semibold text-white rounded-xl transition-all shadow-md shadow-orange-200 flex items-center gap-2
-                ${btnLoading
+                ${
+                  btnLoading
                     ? "bg-orange-400 cursor-not-allowed"
                     : "bg-orange-500 hover:bg-orange-600"
-                  }`}
+                }`}
               >
                 {btnLoading && (
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
@@ -1780,8 +1788,8 @@ export default function Page() {
                             <span className="text-xs text-gray-400">
                               {item.follow_up_date
                                 ? new Date(
-                                  item.follow_up_date,
-                                ).toLocaleDateString()
+                                    item.follow_up_date,
+                                  ).toLocaleDateString()
                                 : "—"}
                             </span>
                             <i
@@ -1819,8 +1827,8 @@ export default function Page() {
                           label: "Follow-Up Date",
                           value: previewFollowUp.follow_up_date
                             ? new Date(
-                              previewFollowUp.follow_up_date,
-                            ).toLocaleDateString()
+                                previewFollowUp.follow_up_date,
+                              ).toLocaleDateString()
                             : "—",
                         },
                         {
@@ -1881,10 +1889,11 @@ export default function Page() {
                 onClick={handleUpdate}
                 disabled={updateLoading}
                 className={`px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all shadow-md shadow-orange-200 flex items-center gap-2
-                ${updateLoading
+                ${
+                  updateLoading
                     ? "bg-orange-400 cursor-not-allowed"
                     : "bg-orange-500 hover:bg-orange-600"
-                  }`}
+                }`}
               >
                 {updateLoading && (
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
@@ -2068,123 +2077,123 @@ export default function Page() {
       {/* VIEW LEAD MODAL */}
       {showViewModal && viewLead && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/30">
-          <div className="bg-white w-full max-w-[600px] rounded-sm shadow-2xl overflow-hidden">
+          <div className="bg-white w-full max-w-2xl border border-gray-100 rounded-sm shadow-2xl overflow-hidden ">
             {/* Orange Header */}
-            <div className="from-orange-100 to-white  px-6 py-5 flex items-center justify-between border-b border-gray-100 bg-gradient-to-r">
-              <div className="flex items-center gap-4">
-                <div className="w-7 h-7 rounded-full bg-orange-400 flex items-center justify-center">
-                  <i className="bi bi-person text-white text-xl"></i>
+            <div className="from-orange-100 to-white  px-6 py-3 flex items-center justify-between bg-gradient-to-r">
+              <div className="flex items-center gap-3">
+                <div className="w-7 h-7 flex items-center justify-center">
+                  <i className="bi bi-person  text-md text-orange-500"></i>
                 </div>
                 <div>
-                  <p className="text-white font-bold text-lg leading-tight">
+                  <p className="text-sm  font-semibold text-gray-700 uppercase tracking-wide">
                     {viewLead.customer_name || "—"}
                   </p>
-                  <p className="text-orange-100 text-sm">
+                  <p className="text-gray-400 text-md">
                     {viewLead.status || "—"}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowViewModal(false)}
-                className="w-9 h-9 rounded-full bg-orange-400 hover:bg-orange-300 flex items-center justify-center text-white transition-all"
+                className="w-7 h-7  flex items-center justify-center text-orange-500 text-md"
               >
                 <i className="bi bi-x-lg text-sm"></i>
               </button>
             </div>
 
             {/* Cards Grid */}
-            <div className="p-6 grid grid-cols-2 gap-3">
-              <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+            <div className="p-6 grid grid-cols-2 gap-4">
+              <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-center gap-3">
                 <i className="bi bi-building text-orange-400 text-lg"></i>
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                  <p className="text-xs text-gray-400 uppercase tracking-wider ">
                     Company
                   </p>
-                  <p className="text-sm font-bold text-gray-800">
+                  <p className="text-sm font-semibold text-gray-700">
                     {viewLead.company_name || "—"}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+              <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-center gap-3">
                 <i className="bi bi-person-circle text-orange-400 text-lg"></i>
                 <div>
                   <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
                     Customer Name
                   </p>
-                  <p className="text-sm font-bold text-gray-800">
+                  <p className="text-sm font-semibold text-gray-700">
                     {viewLead.customer_name || "—"}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+              <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-center gap-3">
                 <i className="bi bi-flag text-orange-400 text-lg"></i>
                 <div>
                   <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
                     Source
                   </p>
-                  <p className="text-sm font-bold text-gray-800">
+                  <p className="text-sm font-semibold text-gray-700     ">
                     {viewLead.source || "—"}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+              <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-center gap-3">
                 <i className="bi bi-layers text-orange-400 text-lg"></i>
                 <div>
                   <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
                     Product Category
                   </p>
-                  <p className="text-sm font-bold text-gray-800">
+                  <p className="text-sm font-semibold text-gray-700">
                     {viewLead.product_category || "—"}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+              <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-center gap-3">
                 <i className="bi bi-box-seam text-orange-400 text-lg"></i>
                 <div>
                   <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
                     Product Name
                   </p>
-                  <p className="text-sm font-bold text-gray-800">
+                  <p className="text-sm font-semibold text-gray-700">
                     {viewLead.product_name || "—"}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+              <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-center gap-3">
                 <i className="bi bi-tag text-orange-400 text-lg"></i>
                 <div>
                   <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
                     Category
                   </p>
-                  <p className="text-sm font-bold text-gray-800">
+                  <p className="text-sm font-semibold text-gray-700">
                     {viewLead.category || "—"}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+              <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-center gap-3">
                 <i className="bi bi-person-check text-orange-400 text-lg"></i>
                 <div>
                   <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
                     Assignee
                   </p>
-                  <p className="text-sm font-bold text-gray-800">
+                  <p className="text-sm font-semibold text-gray-700">
                     {viewLead.assignee || "—"}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+              <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-center gap-3">
                 <i className="bi bi-calendar3 text-orange-400 text-lg"></i>
                 <div>
                   <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
                     Created
                   </p>
-                  <p className="text-sm font-bold text-gray-800">
+                  <p className="text-sm font-semibold text-gray-700">
                     {viewLead.created_at
                       ? new Date(viewLead.created_at).toLocaleDateString()
                       : "—"}
@@ -2192,25 +2201,25 @@ export default function Page() {
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+              <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-start gap-3">
                 <i className="bi bi-pencil text-orange-400 text-lg"></i>
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
                     Lead Title
                   </p>
-                  <p className="text-sm font-bold text-gray-800">
+
+                  <p className="text-sm font-semibold text-gray-700 break-words whitespace-normal">
                     {viewLead.lead_title || "—"}
                   </p>
                 </div>
               </div>
-
-              <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+              <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-start gap-3">
                 <i className="bi bi-chat-left-text text-orange-400 text-lg"></i>
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
                     Description
                   </p>
-                  <p className="text-sm font-bold text-gray-800">
+                  <p className="text-sm font-semibold text-gray-700 break-words whitespace-normal">
                     {viewLead.description || "—"}
                   </p>
                 </div>
