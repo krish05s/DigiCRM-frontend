@@ -59,7 +59,7 @@ function ImageCarousel() {
       setFading(false);
     }, 400);
   };
-
+  
   const slide = SLIDES[current];
 
   return (

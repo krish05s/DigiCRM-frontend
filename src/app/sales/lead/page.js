@@ -8,9 +8,10 @@ import { toast } from "react-toastify";
 import { checkRole } from "@/utils/checkRole";
 
 export default function Page() {
-
   const [btnLoading, setBtnLoading] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportRef = useRef(null);
 
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +38,8 @@ export default function Page() {
   const [leadToDelete, setLeadToDelete] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewLead, setViewLead] = useState(null);
 
   const [updateForm, setUpdateForm] = useState({
     follow_up_date: "",
@@ -85,6 +88,170 @@ export default function Page() {
   useEffect(() => {
     fetchLeads();
   }, []);
+
+  // ✅ Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (exportRef.current && !exportRef.current.contains(e.target)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // ===================================================
+  // ✅ EXPORT TO EXCEL
+  // ===================================================
+
+  const exportToExcel = async () => {
+    try {
+      const XLSX = await import("xlsx");
+
+      const exportData = filteredLeads.map((lead, index) => ({
+        "No.": index + 1,
+        "Company Name": lead.company_name || "",
+        "Customer Name": lead.customer_name || "",
+        "Lead Title": lead.lead_title || "",
+        "Product Category": lead.product_category || "",
+        Source: lead.source || "",
+        Assignee: lead.assignee || "",
+        "Next Follow Up": lead.next_follow_up_date
+          ? new Date(lead.next_follow_up_date).toLocaleDateString()
+          : "",
+        "Created At": lead.created_at
+          ? new Date(lead.created_at).toLocaleDateString()
+          : "",
+        Status: lead.status || "",
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
+
+      // Auto column width
+      const colWidths = Object.keys(exportData[0] || {}).map((key) => ({
+        wch: Math.max(key.length, 15),
+      }));
+      worksheet["!cols"] = colWidths;
+
+      const now = new Date();
+
+      const date = now.toISOString().split("T")[0];
+
+      // Direct HH:MM
+      const time = now.toTimeString().slice(0, 5);
+
+      const fileName = `Leads_${activeTab}_(${date})_${time}.xlsx`;
+
+      XLSX.writeFile(workbook, fileName);
+      toast.success("Excel exported successfully");
+      setShowExportMenu(false);
+    } catch (err) {
+      console.log(err);
+      toast.error("Excel export failed");
+    }
+  };
+
+  // ===================================================
+  // ✅ EXPORT TO PDF
+  // ===================================================
+
+  const exportToPDF = async () => {
+    try {
+      const { default: jsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
+
+      const doc = new jsPDF({ orientation: "landscape" });
+
+      // Title
+      doc.setFontSize(14);
+      doc.setTextColor(40, 40, 40);
+      doc.text(`Leads Report - ${activeTab}`, 14, 15);
+
+      doc.setFontSize(9);
+      doc.setTextColor(120, 120, 120);
+      doc.text(
+        `Exported on: ${new Date().toLocaleDateString("en-GB")}   |   Total Records: ${filteredLeads.length}`,
+        14,
+        22,
+      );
+
+      const tableData = filteredLeads.map((lead, index) => [
+        index + 1,
+        lead.company_name || "",
+        lead.customer_name || "",
+        lead.lead_title || "",
+        lead.product_category || "",
+        lead.source || "",
+        lead.assignee || "",
+        lead.next_follow_up_date
+          ? new Date(lead.next_follow_up_date).toLocaleDateString()
+          : "",
+        lead.created_at ? new Date(lead.created_at).toLocaleDateString() : "",
+        lead.status || "",
+      ]);
+
+      autoTable(doc, {
+        startY: 27,
+        head: [
+          [
+            "#",
+            "Company",
+            "Customer",
+            "Lead Title",
+            "Product Cat.",
+            "Source",
+            "Assignee",
+            "Next Follow Up",
+            "Created",
+            "Status",
+          ],
+        ],
+        body: tableData,
+        theme: "grid",
+        styles: {
+          fontSize: 8,
+          cellPadding: 3,
+          textColor: [40, 40, 40],
+        },
+        headStyles: {
+          fillColor: [234, 88, 12], // orange-600
+          textColor: [255, 255, 255],
+          fontStyle: "bold",
+          fontSize: 8,
+        },
+        alternateRowStyles: {
+          fillColor: [255, 247, 237], // orange-50
+        },
+        columnStyles: {
+          0: { cellWidth: 8 },
+          3: { cellWidth: 35 },
+          9: { cellWidth: 20 },
+        },
+      });
+
+
+      const now = new Date();
+
+      const date = now.toISOString().split("T")[0];
+
+      // Direct HH:MM
+      const time = now.toTimeString().slice(0, 5).replace("_", "-");
+
+      const fileName = `Leads_${activeTab}_(${date})_${time}.pdf`;
+
+
+      doc.save(
+        fileName,
+      );
+      toast.success("PDF exported successfully");
+      setShowExportMenu(false);
+    } catch (err) {
+      console.log(err);
+      toast.error("PDF export failed");
+    }
+  };
 
   // functions for multer functionality
 
@@ -149,7 +316,6 @@ export default function Page() {
 
   const handleSubmit = async () => {
     try {
-
       if (!form.activity_type || !form.contact_person || !form.description) {
         toast.error("Please fill all required fields");
         return;
@@ -171,15 +337,11 @@ export default function Page() {
         selectedFiles.forEach((file) => formData.append("files", file));
       }
 
-      await axios.post(
-        `${API_BASE}/api/lead-follow-up/insert`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      await axios.post(`${API_BASE}/api/lead-follow-up/insert`, formData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
       toast.success("Follow-up added");
 
@@ -187,16 +349,13 @@ export default function Page() {
       setSelectedFiles([]);
 
       fetchLeads();
-
     } catch (err) {
       console.log(err);
       toast.error("Something went wrong");
-
     } finally {
       setBtnLoading(false); // ✅ STOP spinner
     }
   };
-
 
   const openUpdateModal = async (lead) => {
     setSelectedLead(lead);
@@ -227,7 +386,6 @@ export default function Page() {
 
   const handleUpdate = async () => {
     try {
-
       if (
         !updateForm.activity_type ||
         !updateForm.contact_person ||
@@ -254,20 +412,16 @@ export default function Page() {
         selectedFiles.forEach((file) => formData.append("files", file));
       }
 
-      await axios.post(
-        `${API_BASE}/api/lead-follow-up/insert`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      await axios.post(`${API_BASE}/api/lead-follow-up/insert`, formData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
       toast.success("New follow-up added ");
 
       const res = await axios.get(
-        `${API_BASE}/api/lead-follow-up/history/${selectedLead.lead_id}`
+        `${API_BASE}/api/lead-follow-up/history/${selectedLead.lead_id}`,
       );
 
       setFollowUpHistory(res.data?.result || []);
@@ -284,19 +438,13 @@ export default function Page() {
       setSelectedFiles([]);
 
       fetchLeads();
-
     } catch (err) {
-
       toast.error("Failed to add follow-up ");
       console.log(err);
-
     } finally {
-
       setUpdateLoading(false); // ✅ STOP spinner
-
     }
   };
-
 
   //  DELETE HANDLERS for delete lead
 
@@ -309,14 +457,11 @@ export default function Page() {
     if (!leadToDelete) return;
     setDeleteLoading(true);
     try {
-      await axios.delete(
-        `${API_BASE}/api/lead/${leadToDelete.lead_id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+      await axios.delete(`${API_BASE}/api/lead/${leadToDelete.lead_id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-      );
+      });
       toast.success("Lead deleted successfully");
       setShowDeleteModal(false);
       setLeadToDelete(null);
@@ -375,13 +520,17 @@ export default function Page() {
 
   // view function
 
+  // const handleView = (lead) => {
+  //   // get token stored after login
+  //   const token = localStorage.getItem("token");
+
+  //   sessionStorage.setItem("viewLeadId", lead.lead_id);
+
+  //   router.push("/sales/lead/view-lead");
+  // };
   const handleView = (lead) => {
-    // get token stored after login
-    const token = localStorage.getItem("token");
-
-    sessionStorage.setItem("viewLeadId", lead.lead_id);
-
-    router.push("/sales/lead/view-lead");
+    setViewLead(lead);
+    setShowViewModal(true);
   };
 
   const handleStatusChange = (lead_id, newStatus) => {
@@ -392,12 +541,9 @@ export default function Page() {
 
   const confirmStatusChange = async () => {
     try {
-      await axios.put(
-        `${API_BASE}/api/lead/update-status/${selectedLead}`,
-        {
-          status: selectedStatus,
-        },
-      );
+      await axios.put(`${API_BASE}/api/lead/update-status/${selectedLead}`, {
+        status: selectedStatus,
+      });
 
       setLeads((prev) =>
         prev.map((lead) =>
@@ -408,12 +554,11 @@ export default function Page() {
       );
 
       setShowPopup(false);
-      toast.success("Status Updated")
+      toast.success("Status Updated");
     } catch (err) {
       console.log(err);
     }
   };
-
 
   // ================= FILTER LOGIC =================
 
@@ -431,47 +576,38 @@ export default function Page() {
     from_created: "",
     to_created: "",
     from_followup: "",
-    to_followup: ""
+    to_followup: "",
   });
-
 
   // input change
   const handleFilterChange = (e) => {
-
     const { name, value } = e.target;
 
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-
   };
-
 
   // API filter
   const searchLeads = async () => {
-
     try {
-
       const params = Object.fromEntries(
-        Object.entries(filters).filter(([_, v]) => v !== "")
+        Object.entries(filters).filter(([_, v]) => v !== ""),
       );
 
       const res = await axios.get(
-
         `${API_BASE}/api/lead/sales/leads/filter`,
 
         {
           params,
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`
-          }
-        }
-
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        },
       );
 
-      const formatted = (res.data?.data || []).map(item => {
-
+      const formatted = (res.data?.data || []).map((item) => {
         let finalStatus = "Pending";
 
         if (item.status === "Won") finalStatus = "Won";
@@ -479,59 +615,40 @@ export default function Page() {
 
         return {
           ...item,
-          status: finalStatus
+          status: finalStatus,
         };
-
       });
 
       setLeads(formatted);
-
-    }
-    catch (err) {
-
+    } catch (err) {
       console.log(err);
-
     }
-
   };
-
 
   // debounce search
   useEffect(() => {
-
-    const hasFilter =
-      Object.values(filters).some(v => v !== "");
+    const hasFilter = Object.values(filters).some((v) => v !== "");
 
     if (!hasFilter) {
-
       fetchLeads();
 
       return;
-
     }
 
     if (debounceRef.current) {
-
       clearTimeout(debounceRef.current);
-
     }
 
     debounceRef.current = setTimeout(() => {
-
       searchLeads();
-
     }, 200);
 
     return () => clearTimeout(debounceRef.current);
-
   }, [filters]);
-
 
   // reset filter
   const resetFilters = () => {
-
     setFilters({
-
       company_name: "",
       customer_name: "",
       lead_title: "",
@@ -543,57 +660,38 @@ export default function Page() {
       from_created: "",
       to_created: "",
       from_followup: "",
-      to_followup: ""
-
+      to_followup: "",
     });
 
     fetchLeads();
-
   };
-
 
   // ================= TAB + FILTER MERGE =================
 
-
   // if filter applied → filter result by tab also
-  const hasActiveFilters =
-    Object.values(filters).some(v => v !== "");
-
+  const hasActiveFilters = Object.values(filters).some((v) => v !== "");
 
   // show all filtered data in Pending tab
   const filteredLeads = hasActiveFilters
     ? leads
-    : leads.filter(l => {
-
+    : leads.filter((l) => {
       if (activeTab === "Pending") {
-
         return l.status !== "Won" && l.status !== "Lost";
-
       }
 
       return l.status === activeTab;
-
     });
 
-
   // counts
-  const pendingCount =
-    leads.filter(l => l.status === "Pending").length;
+  const pendingCount = leads.filter((l) => l.status === "Pending").length;
 
+  const wonCount = leads.filter((l) => l.status === "Won").length;
 
-  const wonCount =
-    leads.filter(l => l.status === "Won").length;
-
-
-  const lostCount =
-    leads.filter(l => l.status === "Lost").length;
-
+  const lostCount = leads.filter((l) => l.status === "Lost").length;
 
   useEffect(() => {
     setCurrentPage(1);
   }, [filters, activeTab]);
-
-
 
   // Dynamic Dropdowns
 
@@ -615,13 +713,12 @@ export default function Page() {
           params: { status: 1 },
         });
 
-        const cleanedData = (res.data?.data || res.data || []).map(item => ({
+        const cleanedData = (res.data?.data || res.data || []).map((item) => ({
           ...item,
-          name: item.name ? item.name.split(" ")[0] : ""
+          name: item.name ? item.name.split(" ")[0] : "",
         }));
 
         setAssignee(cleanedData);
-
       } catch (err) {
         console.error("Failed to fetch names:", err);
         setAssignee([]); // fallback
@@ -631,78 +728,13 @@ export default function Page() {
     fetchAssignee();
   }, []);
 
-
-
-  // useEffect(() => {
-  //   const fetchUsers = async () => {
-  //     try {
-  //       const res = await axios.get(`${API_BASE}/api/manage-user/asignee`, {
-  //         params: { status: 1 },
-  //       });
-
-  //       setUsers(res.data.data || res.data);
-
-  //     } catch (err) {
-  //       console.error("Failed to fetch names:", err);
-  //       setAssignee([]); // fallback
-  //     }
-  //   };
-
-  //   fetchUsers();
-  // }, []);
-
-
-  // Dynamic Dropdown for Company and Customer
-  // useEffect(() => {
-  //   const fetchCompanyName = async () => {
-  //     try {
-  //       const res = await axios.get(`${API_BASE}/api/organizations/organization-name`);
-  //       setCompanyname(res.data.data || res.data);
-  //     } catch {
-  //       setCompanyname([]);
-  //     }
-  //   };
-
-  //   fetchCompanyName();
-  // }, []);
-
-
-
-  // useEffect(() => {
-  //   const dropdown = companyRef.current;
-  //   if (!dropdown) return;
-
-  //   const handleCompanyChange = async () => {
-  //     const selected = dropdown.value;
-
-  //     if (!selected) {
-  //       setCustomername([]);
-  //       return;
-  //     }
-
-  //     try {
-  //       const res = await axios.get(`${API_BASE}/api/customers/customer-name`,
-  //         { params: { company_name: selected } }
-  //       );
-
-  //       setCustomername(res.data.data || res.data);
-  //     } catch {
-  //       setCustomername([]);
-  //     }
-  //   };
-
-  //   dropdown.addEventListener("change", handleCompanyChange);
-
-  //   return () => dropdown.removeEventListener("change", handleCompanyChange);
-  // }, []);
-
-
   // Dropdown for lead Source
   useEffect(() => {
     const fetchSource = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/api/inquiry-lead-source/read`,
-          { params: { status: 1 } }
+        const res = await axios.get(
+          `${API_BASE}/api/inquiry-lead-source/read`,
+          { params: { status: 1 } },
         );
         setLeadSource(res.data);
       } catch { }
@@ -715,8 +747,9 @@ export default function Page() {
   useEffect(() => {
     const fetchCategory = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/api/inquiry-lead-category/read`,
-          { params: { status: 1 } }
+        const res = await axios.get(
+          `${API_BASE}/api/inquiry-lead-category/read`,
+          { params: { status: 1 } },
         );
         setLeadCategory(res.data);
       } catch { }
@@ -729,9 +762,9 @@ export default function Page() {
   useEffect(() => {
     const fetchProductCategory = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/api/product-category/read`,
-          { params: { status: 1 } }
-        );
+        const res = await axios.get(`${API_BASE}/api/product-category/read`, {
+          params: { status: 1 },
+        });
         setCategory(res.data);
       } catch { }
     };
@@ -739,38 +772,26 @@ export default function Page() {
     fetchProductCategory();
   }, []);
 
-
-
   // PAGINATION
   const [currentPage, setCurrentPage] = useState(1);
 
   const itemsPerPage = 10;
 
   // apply pagination on filtered data
-  const paginatedLeads =
-    filteredLeads.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-    );
+  const paginatedLeads = filteredLeads.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
 
-  const totalPages =
-    Math.ceil(filteredLeads.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredLeads.length / itemsPerPage);
 
   const handlePageChange = (page) => {
-
     if (page >= 1 && page <= totalPages) {
-
       setCurrentPage(page);
-
     }
-
   };
 
-
-
-
   const isAdmin = checkRole(["Admin"]);
-
 
   return (
     <>
@@ -805,1111 +826,1393 @@ export default function Page() {
               </Link>
             </p>
           </div>
-          <Link
-            href="/sales/lead/add-lead"
-            className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-xl text-sm font-semibold tracking-wide transition-all"
-          >
-            + ADD LEAD
-          </Link>
-        </div>
 
-        {/* FILTER SECTION */}
+          {/* Export Button */}
+          <div className="flex items-center gap-3">
+            {/* Export Button */}
+            <div className="relative" ref={exportRef}>
+              <button
+                onClick={() => setShowExportMenu((prev) => !prev)}
+                className="flex items-center gap-2 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-gray-600 hover:text-blue-700 px-4 py-2 rounded-xl text-sm font-semibold tracking-wide transition-all shadow-sm"
+              >
+                <i className="bi bi-download text-base"></i>
+                Export
+                <i
+                  className={`bi bi-chevron-down text-xs transition-transform duration-200 ${showExportMenu ? "rotate-180" : ""
+                    }`}
+                ></i>
+              </button>
 
-        <div className="mx-6 flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 mb-5">
+              {showExportMenu && (
+                <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
+                  <button
+                    onClick={exportToExcel}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-all"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                      <i className="bi bi-file-earmark-excel text-green-600 text-sm"></i>
+                    </div>
+                    Export Excel
+                  </button>
 
-          <input name="company_name" value={filters.company_name} onChange={handleFilterChange} ref={companyRef} placeholder="Company Name" className="p-2 w-45  bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-600 text-sm" />
+                  <div className="h-px bg-gray-100 mx-3"></div>
 
-          <input name="customer_name" value={filters.customer_name} onChange={handleFilterChange} placeholder="Customer Name" className="p-2 w-45  bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-600 text-sm" />
-
-          <input name="lead_title" value={filters.lead_title} onChange={handleFilterChange} placeholder="Enter Lead Title" className="p-2 w-45  bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-600 text-sm"
-          />
-
-          <select name="product_category" value={filters.product_category} onChange={handleFilterChange} className="p-2 w-48  bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm">
-            <option value="">Select Product Category</option>
-            {category.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-
-          <select name="source" value={filters.source} onChange={handleFilterChange} className="p-2 w-45  bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm">
-            <option value="">Select Source</option>
-            {leadSource.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-
-          <select name="assignee" value={filters.assignee} onChange={handleFilterChange} className="p-2 w-45  bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm">
-            <option value="">Select Assignee</option>
-            {assignee.map((item) => (
-              <option key={item.id} value={item.name}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-
-          <div className="flex items-center px-2 w-58 bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm">
-            <span className="mx-1 text-gray-400">From Next</span>
-            <input type="date" name="from_followup" value={filters.from_followup} onChange={handleFilterChange} className="p-2 w-35 outline-none" />
-          </div>
-
-          <div className="flex items-center px-2 w-53 bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm">
-            <span className="mx-1 text-gray-400">To Next</span>
-            <input type="date" name="to_followup" value={filters.to_followup} onChange={handleFilterChange} className="p-2 w-35 outline-none" />
-          </div>
-
-          <select name="status" value={filters.status} onChange={handleFilterChange} className="p-2 w-45  bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm">
-            <option value="">Pending</option>
-            <option value="Won">Won</option>
-            <option value="Lost">Lost</option>
-          </select>
-
-          {/* <select name="created_by" value={filters.created_by} onChange={handleFilterChange} className="p-2 w-48  bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm">
-            <option value="">Select Created By</option>
-            {users.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select> */}
-
-
-          <div className="flex items-center px-2 w-60 bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm  ">
-            <span className="mx-1 text-gray-400">From Create</span>
-            <input type="date" name="from_created" value={filters.from_created} onChange={handleFilterChange} className="p-2 w-35 outline-none" />
-          </div>
-
-          <div className="flex items-center px-2 w-58 bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm">
-            <span className="mx-1 text-gray-400">To Create</span>
-            <input type="date" name="to_created" value={filters.to_created} onChange={handleFilterChange} className="p-2 w-35 outline-none" />
-          </div>
-
-          <div className="flex gap-2">
-
-            <button onClick={resetFilters} className="border border-gray-300 cursor-pointer rounded-sm p-0.5 bg-gray-200 text-gray-700 hover:bg-gray-300 text-md text-center mx- px-3">
-              Clear
-            </button>
-
-          </div>
-
-        </div>
-
-
-        {/* tabs */}
-
-        <div className="bg-white rounded-sm border border-gray-100  py-2 mx-7">
-          <div className="flex items-center gap-8 px-6 pt-4 border-b border-gray-100">
-            <button
-              onClick={() => setActiveTab("Pending")}
-              className={`pb-3 px-3 text-sm font-medium relative cursor-pointer transition-all ${activeTab === "Pending"
-                ? "text-blue-600"
-                : "text-gray-400 hover:text-gray-600"
-                }`}
-            >
-              {" "}
-              Pending
-              {/* <span className="ml-2 bg-blue-100 text-blue-600 cursor-pointer text-xs px-2 py-0.5 rounded-full">
-                {pendingCount}
-              </span> */}
-              {activeTab === "Pending" && (
-                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></div>
+                  <button
+                    onClick={exportToPDF}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                      <i className="bi bi-file-earmark-pdf text-red-600 text-sm"></i>
+                    </div>
+                    Export PDF
+                  </button>
+                </div>
               )}
-            </button>
+            </div>
 
-            <button
-              onClick={() => setActiveTab("Won")}
-              className={`pb-3 text-sm font-medium cursor-pointer relative ${activeTab === "Won" ? "text-green-600" : "text-gray-500"
-                }`}
+            {/* Add Lead Button */}
+            <Link
+              href="/sales/lead/add-lead"
+              className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow-md transition-all"
             >
-              Won
-              {/* <span className="ml-2 bg-green-100 text-green-600 text-xs px-2 py-0.5 rounded-full">
-                {wonCount}
-              </span> */}
-              {activeTab === "Won" && (
-                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-green-600"></div>
-              )}
-            </button>
+              + ADD LEAD
+            </Link>
+          </div>
+          </div>
 
-            <button
-              onClick={() => setActiveTab("Lost")}
-              className={`pb-3 text-sm font-medium relative ${activeTab === "Lost" ? "text-red-600" : "text-gray-500"
-                }`}
+          {/* FILTER SECTION */}
+
+          <div className="mx-6 flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 mb-5">
+            <input
+              name="company_name"
+              value={filters.company_name}
+              onChange={handleFilterChange}
+              ref={companyRef}
+              placeholder="Company Name"
+              className="p-2 w-45  bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-600 text-sm"
+            />
+
+            <input
+              name="customer_name"
+              value={filters.customer_name}
+              onChange={handleFilterChange}
+              placeholder="Customer Name"
+              className="p-2 w-45  bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-600 text-sm"
+            />
+
+            <input
+              name="lead_title"
+              value={filters.lead_title}
+              onChange={handleFilterChange}
+              placeholder="Enter Lead Title"
+              className="p-2 w-45  bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-600 text-sm"
+            />
+
+            <select
+              name="product_category"
+              value={filters.product_category}
+              onChange={handleFilterChange}
+              className="p-2 w-48  bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm"
             >
-              Lost
-              {/* <span className="ml-2 bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">
-                {lostCount}
-              </span> */}
-              {activeTab === "Lost" && (
-                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-red-600"></div>
-              )}
-            </button>
-          </div>
+              <option value="">Select Product Category</option>
+              {category.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
 
-          {/* table */}
+            <select
+              name="source"
+              value={filters.source}
+              onChange={handleFilterChange}
+              className="p-2 w-45  bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm"
+            >
+              <option value="">Select Source</option>
+              {leadSource.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
 
-          <div className="p-4">
-            {loading ? (
-              <div className="text-center py-10 text-gray-400">Loading...</div>
-            ) : (
-              // <div className="overflow-x-auto overflow-y-auto max-h-[500px]">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-100">
-                      <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        #
-                      </th>
-                      <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Company Name
-                      </th>
-                      <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Customer Name
-                      </th>
-                      <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Lead Title
-                      </th>
-                      <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Product Category
-                      </th>
-                      <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Source
-                      </th>
-                      <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Assignee
-                      </th>
-                      <th className="py-3 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Next Follow Up
-                      </th>
-                      <th className="py-3 px-3 text-left  text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Created
-                      </th>
-                      <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Status
-                      </th>
+            <select
+              name="assignee"
+              value={filters.assignee}
+              onChange={handleFilterChange}
+              className="p-2 w-45  bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm"
+            >
+              <option value="">Select Assignee</option>
+              {assignee.map((item) => (
+                <option key={item.id} value={item.name}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
 
-                      <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Action
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {filteredLeads.length > 0 ? (
-                      paginatedLeads.map((lead, index) => (
-                        <tr
-                          key={lead.lead_id}
-                          className="border-b border-gray-50 hover:bg-indigo-50/30 transition-colors"
-                        >
-                          <td className="py-3 px-2">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-
-                          <td className="font-medium px-2">{lead.company_name}</td>
-
-                          <td className="text-orange-500 cursor-pointer px-3">
-                            {lead.customer_name}
-                          </td>
-
-                          <td className="px-2">{lead.lead_title}</td>
-
-                          <td className="text-gray-500 px-3">
-                            {lead.product_category || "-"}
-                          </td>
-
-                          <td className="px-3">{lead.source}</td>
-
-                          <td style={{ display: "flex", gap: "1px", alignItems: "center" }} className="py-2 px-4">
-
-                            {lead.assignee
-                              ? String(lead.assignee)
-                                .split(",")
-                                .map((name, index) => {
-
-                                  const letter =
-                                    name.trim().charAt(0).toUpperCase();
-
-                                  return (
-
-                                    <div
-                                      key={index}
-                                      title={name.trim()}
-                                      className="px-3 py-1.5 bg-blue-800 text-white rounded-full font-semibold text-sm flex justify-center items-center min-w-[28px] text-center select-none"
-                                    >
-
-                                      {letter}
-
-                                    </div>
-
-                                  );
-
-                                })
-
-                              : "-"}
-
-                          </td>
-
-                          <td className=" text-center">
-                            {lead.next_follow_up_date ? (
-                              <span
-                                onClick={() => {
-                                  if (lead.status === "Pending") {
-                                    openUpdateModal(lead);
-                                  }
-                                }}
-                                className={`${lead.status === "Pending"
-                                  ? "cursor-pointer text-blue-800"
-                                  : "text-gray-400 cursor-not-allowed"
-                                  }`}
-                              >
-                                {new Date(
-                                  lead.next_follow_up_date,
-                                ).toLocaleDateString()}
-                              </span>
-                            ) : (
-                              <button
-                                disabled={lead.status !== "Pending"}
-                                onClick={() => {
-                                  if (lead.status !== "Pending") return;
-                                  setSelectedLead(lead);
-                                  setSelectedFiles([]);
-                                  setForm({
-                                    follow_up_date: new Date()
-                                      .toISOString()
-                                      .split("T")[0],
-                                    activity_type: "",
-                                    follow_up_by: "",
-                                    contact_person: "",
-                                    description: "",
-                                  });
-                                  setShowModal(true);
-                                }}
-                                className={`w-9 h-9 rounded-full border flex items-center justify-center mx-auto
-                                                                          ${lead.status ===
-                                    "Pending"
-                                    ? "hover:bg-gray-100 cursor-pointer"
-                                    : "bg-gray-100 cursor-not-allowed opacity-60"
-                                  }`}
-                              >
-                                <i className="bi bi-plus text-lg"></i>
-                              </button>
-                            )}
-                          </td>
-
-                          <td className="text-gray-500 px-2">
-                            {new Date(lead.created_at).toLocaleDateString()}
-                          </td>
-
-                          <td>
-                            <select value={lead.status}
-                              onMouseDown={(e) => {
-                                if (
-                                  !isAdmin &&
-                                  (
-                                    lead.status === "Won" ||
-                                    lead.status === "Lost"
-                                  )
-                                ) {
-                                  e.preventDefault(); // stop dropdown open
-                                  toast.error("Only Admin can change Status");
-                                }
-                              }}
-
-                              onChange={(e) => {
-                                handleStatusChange(
-                                  lead.lead_id,
-                                  e.target.value
-                                );
-                              }} className={`border rounded-sm px-3 py-1 text-xs font-semibold outline-none cursor-pointer
-
-                                ${lead.status === "Pending"
-                                  ? "border-gray-200 bg-gray-50 text-gray-700 cursor-pointer"
-                                  : ""}
-
-                                ${lead.status === "Won"
-                                  ? "border-green-200 bg-green-50 text-green-700 cursor-pointer"
-                                  : ""}
-
-                                ${lead.status === "Lost"
-                                  ? "border-red-200 bg-red-50 text-red-700 cursor-pointer"
-                                  : ""}
-                                `}>
-                              <option value="Pending"> Pending </option>
-                              <option value="Won"> Won </option>
-                              <option value="Lost"> Lost </option>
-                            </select>
-                          </td>
-
-
-                          <td className="text-lg">
-                            {lead.status === "Pending" ? (
-                              <>
-                                <button
-                                  onClick={() => handleView(lead)}
-                                  className="text-gray-400 hover:text-green-600 cursor-pointer"
-                                >
-                                  <i className="bi bi-eye text-xl"></i>
-                                </button>
-
-                                <button
-                                  onClick={() => handleEdit(lead)}
-                                  className="text-gray-400 hover:text-blue-800 mx-2 cursor-pointer"
-                                >
-                                  <i className="bi bi-pencil-square"></i>
-                                </button>
-
-                                <button
-                                  onClick={() => openDeleteModal(lead)}
-                                  className="text-gray-400 hover:text-red-600 cursor-pointer"
-                                >
-                                  <i className="bi bi-trash3"></i>
-                                </button>
-                              </>
-                            ) : (
-                              <span className="text-gray-300 cursor-not-allowed">
-                                <i className="bi bi-lock text-lg"></i>
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan="11"
-                          className="text-center py-10 text-gray-400"
-                        >
-                          No Data Found
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between px-6 py-3 border-gray-200 bg-white rounded-b-lg">
-                    {/* Previous Button */}
-                    <button type="button" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="px-4 py-2 text-sm font-medium rounded-md border bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                      Previous
-                    </button>
-
-                    {/* Page Info Centered */}
-                    <span className="text-sm text-gray-600">
-                      Page <span className="font-semibold">{currentPage}</span> of{" "}
-                      <span className="font-semibold">{totalPages}</span>
-                    </span>
-
-                    {/* Next Button */}
-                    <button type="button" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-4 py-2 text-sm font-medium rounded-md border bg-blue-800 text-white hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed">
-                      Next
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Multer Popup Model Code */}
-
-      {/* ✅ DELETE CONFIRMATION MODAL */}
-      {showDeleteModal && leadToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white w-[400px] rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
-            <div className="flex justify-between items-center px-6 py-4 bg-gradient-to-r from-red-50 to-white border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-red-500 inline-block"></span>
-                <h2 className="text-sm font-semibold text-gray-700 tracking-wide uppercase">
-                  Delete Lead
-                </h2>
-              </div>
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setLeadToDelete(null);
-                }}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-red-100 text-gray-400 hover:text-red-500 transition-all"
-              >
-                ✕
-              </button>
+            <div className="flex items-center px-2 w-58 bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm">
+              <span className="mx-1 text-gray-400">From Next</span>
+              <input
+                type="date"
+                name="from_followup"
+                value={filters.from_followup}
+                onChange={handleFilterChange}
+                className="p-2 w-35 outline-none"
+              />
             </div>
 
-            <div className="flex flex-col items-center justify-center px-6 py-8 gap-4">
-              <div className="w-20 h-20 rounded-full bg-red-50 border-2 border-red-100 flex items-center justify-center">
-                <i className="bi bi-trash3 text-3xl text-red-400"></i>
-              </div>
-              <div className="text-center">
-                <p className="text-gray-800 font-semibold text-base">
-                  {leadToDelete.customer_name}
-                </p>
-                <p className="text-gray-400 text-sm mt-1">
-                  This action cannot be undone. Are you sure?
-                </p>
-              </div>
+            <div className="flex items-center px-2 w-53 bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm">
+              <span className="mx-1 text-gray-400">To Next</span>
+              <input
+                type="date"
+                name="to_followup"
+                value={filters.to_followup}
+                onChange={handleFilterChange}
+                className="p-2 w-35 outline-none"
+              />
             </div>
 
-            <div className="flex justify-center gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
+            <select
+              name="status"
+              value={filters.status}
+              onChange={handleFilterChange}
+              className="p-2 w-45  bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm"
+            >
+              <option value="">Pending</option>
+              <option value="Won">Won</option>
+              <option value="Lost">Lost</option>
+            </select>
+
+            <div className="flex items-center px-2 w-60 bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm  ">
+              <span className="mx-1 text-gray-400">From Create</span>
+              <input
+                type="date"
+                name="from_created"
+                value={filters.from_created}
+                onChange={handleFilterChange}
+                className="p-2 w-35 outline-none"
+              />
+            </div>
+
+            <div className="flex items-center px-2 w-58 bg-white rounded-sm focus:outline-none focus:ring-1 focus:ring-orange-200 text-gray-400 text-sm">
+              <span className="mx-1 text-gray-400">To Create</span>
+              <input
+                type="date"
+                name="to_created"
+                value={filters.to_created}
+                onChange={handleFilterChange}
+                className="p-2 w-35 outline-none"
+              />
+            </div>
+
+            <div className="flex gap-2">
               <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setLeadToDelete(null);
-                }}
-                className="px-6 py-2 rounded-xl text-sm font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-100 transition-all"
+                onClick={resetFilters}
+                className="border border-gray-300 cursor-pointer rounded-sm p-0.5 bg-gray-200 text-gray-700 hover:bg-gray-300 text-md text-center mx- px-3"
               >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleteLoading}
-                className="px-6 py-2 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-60 transition-all shadow-md shadow-red-200"
-              >
-                {deleteLoading ? "Deleting..." : "Delete"}
+                Clear
               </button>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* ADD FOLLOW-UP MODAL */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white w-[480px] rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-            {/* Header */}
-            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-white">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-orange-500 inline-block"></span>
-                <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                  Add Lead Activities
-                </h2>
-              </div>
+          {/* tabs */}
+
+          <div className="bg-white rounded-sm border border-gray-100  py-2 mx-7">
+            <div className="flex items-center gap-8 px-6 pt-4 border-b border-gray-100">
               <button
-                onClick={() => setShowModal(false)}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-orange-100 text-gray-400 hover:text-orange-500 transition-all"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="px-6 py-5 grid grid-cols-2 gap-x-4 gap-y-3">
-              <div className="col-span-1">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Follow-Up Date
-                </label>
-                <input
-                  type="date"
-                  name="follow_up_date"
-                  value={form.follow_up_date}
-                  onChange={handleChange}
-                  className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 focus:border-transparent outline-none bg-gray-50 transition-all"
-                />
-              </div>
-              <div className="col-span-1">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Activity Type <span className="text-orange-500">*</span>
-                </label>
-                <select
-                  name="activity_type"
-                  value={form.activity_type}
-                  onChange={handleChange}
-                  className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50 transition-all"
-                >
-                  <option value="">-- Select --</option>
-                  <option>Call</option>
-                  <option>Meeting</option>
-                  <option>Email</option>
-                </select>
-              </div>
-              <div className="col-span-1">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Follow-Up By
-                </label>
-                <select name="follow_up_by" value={form.follow_up_by} onChange={handleChange} className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50 transition-all">
-                  <option value="">Select User</option>
-
-                  {assignee.map((item) => (
-                    <option key={item.id} value={item.name}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-span-1">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Contact Person <span className="text-orange-500">*</span>
-                </label>
-                <div className="flex mt-1.5">
-                  <input
-                    name="contact_person"
-                    value={form.contact_person}
-                    onChange={handleChange}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50 transition-all"
-                  />
-                </div>
-              </div>
-              <div className="col-span-2">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Description <span className="text-orange-500">*</span>
-                </label>
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={handleChange}
-                  className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50 h-20 resize-none transition-all"
-                />
-              </div>
-              <div className="col-span-2 border-2 border-dashed border-orange-100 rounded-xl p-3 text-center bg-orange-50/40">
-                <button
-                  onClick={() => setShowFileModal(true)}
-                  className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-2 mx-auto transition-all shadow-md shadow-orange-200"
-                >
-                  <i className="bi bi-cloud-upload"></i> Browse Files
-                </button>
-                {selectedFiles.length > 0 && (
-                  <div className="mt-2 space-y-1 text-left">
-                    {selectedFiles.map((file, index) => (
-                      <div
-                        key={index}
-                        className="flex justify-between items-center bg-white px-3 py-1 text-xs rounded-lg border border-gray-100 shadow-sm"
-                      >
-                        <span className="text-gray-600 truncate">
-                          {file.name}
-                        </span>
-                        <button
-                          onClick={() =>
-                            setSelectedFiles(
-                              selectedFiles.filter((_, i) => i !== index),
-                            )
-                          }
-                          className="text-orange-500 hover:text-orange-600 ml-2"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <p className="text-xs text-gray-400 mt-1.5">
-                  Max 2MB · JPG, PNG, PDF
-                </p>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-5 py-2 text-sm font-medium border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-100 transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={btnLoading}
-                className={`px-6 py-2 text-sm font-semibold text-white rounded-xl transition-all shadow-md shadow-orange-200 flex items-center gap-2
-                ${btnLoading
-                    ? "bg-orange-400 cursor-not-allowed"
-                    : "bg-orange-500 hover:bg-orange-600"
-                  }`}>
-                {btnLoading && (
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                )}
-
-                {btnLoading ? "Adding..." : "Add"}
-
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* UPDATE FOLLOW-UP MODAL */}
-      {showUpdateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-[900px] rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-            {/* Header */}
-            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-white">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-orange-500 inline-block"></span>
-                <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                  Update Lead Activities
-                </h2>
-              </div>
-              <button
-                onClick={() => {
-                  setShowUpdateModal(false);
-                  setSelectedFiles([]);
-                  setPreviewFollowUp(null);
-                }}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-orange-100 text-gray-400 hover:text-orange-500 transition-all"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="flex">
-              {/* LEFT - Form */}
-              <div className="w-1/2 px-6 py-5 border-r border-gray-100">
-                <p className="text-xs font-bold text-orange-500 uppercase tracking-widest mb-4">
-                  Add New Follow-Up
-                </p>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Follow-Up Date
-                    </label>
-                    <input
-                      type="date"
-                      value={updateForm.follow_up_date}
-                      onChange={(e) =>
-                        setUpdateForm({
-                          ...updateForm,
-                          follow_up_date: e.target.value,
-                        })
-                      }
-                      className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Activity Type *
-                    </label>
-                    <select
-                      value={updateForm.activity_type}
-                      onChange={(e) =>
-                        setUpdateForm({
-                          ...updateForm,
-                          activity_type: e.target.value,
-                        })
-                      }
-                      className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50"
-                    >
-                      <option value="">-- Select --</option>
-                      <option>Call</option>
-                      <option>Meeting</option>
-                      <option>Email</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Follow-Up By
-                    </label>
-                    <select value={updateForm.follow_up_by}
-                      onChange={(e) =>
-                        setUpdateForm({
-                          ...updateForm,
-                          follow_up_by: e.target.value,
-                        })
-                      } className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50"
-                    >
-                      <option value="">Select User</option>
-
-                      {assignee.map((item) => (
-                        <option key={item.id} value={item.name}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Contact Person *
-                    </label>
-                    <input
-                      value={updateForm.contact_person}
-                      onChange={(e) =>
-                        setUpdateForm({
-                          ...updateForm,
-                          contact_person: e.target.value,
-                        })
-                      }
-                      className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Description *
-                    </label>
-                    <textarea
-                      value={updateForm.description}
-                      onChange={(e) =>
-                        setUpdateForm({
-                          ...updateForm,
-                          description: e.target.value,
-                        })
-                      }
-                      className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50 h-20 resize-none"
-                    />
-                  </div>
-                  <div className="col-span-2 border-2 border-dashed border-orange-100 rounded-xl p-3 text-center bg-orange-50/40">
-                    <button
-                      onClick={() => setShowFileModal(true)}
-                      className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-2 mx-auto transition-all shadow-md shadow-orange-200"
-                    >
-                      <i className="bi bi-cloud-upload"></i> Browse Files
-                    </button>
-                    {selectedFiles.length > 0 && (
-                      <div className="mt-2 space-y-1 text-left">
-                        {selectedFiles.map((file, index) => (
-                          <div
-                            key={index}
-                            className="flex justify-between items-center bg-white px-3 py-1 text-xs rounded-lg border border-gray-100 shadow-sm"
-                          >
-                            <span className="text-gray-600 truncate">
-                              {file.name}
-                            </span>
-                            <button
-                              onClick={() =>
-                                setSelectedFiles(
-                                  selectedFiles.filter((_, i) => i !== index),
-                                )
-                              }
-                              className="text-orange-400 hover:text-orange-600 ml-2"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <p className="text-xs text-gray-400 mt-1.5">
-                      Max 2MB · JPG, PNG, PDF
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* RIGHT - History */}
-              <div className="w-1/2 px-6 py-5 flex flex-col">
-                <div className="flex justify-between items-center mb-4">
-                  <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">
-                    Follow-Up History
-                  </p>
-                  <span className="text-xs bg-orange-50 text-orange-500 px-2.5 py-1 rounded-full font-semibold border border-orange-100">
-                    {followUpHistory.length} record(s)
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {followUpHistory.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-gray-300">
-                      <i className="bi bi-clock-history text-3xl mb-2"></i>
-                      <p className="text-sm">No history found</p>
-                    </div>
-                  ) : (
-                    followUpHistory.map((item, idx) => (
-                      <div
-                        key={item.follow_up_id}
-                        onClick={() =>
-                          setPreviewFollowUp(
-                            previewFollowUp?.follow_up_id === item.follow_up_id
-                              ? null
-                              : item,
-                          )
-                        }
-                        className={`border rounded-xl p-3 cursor-pointer transition-all select-none ${previewFollowUp?.follow_up_id === item.follow_up_id ? "border-orange-400 bg-orange-50 shadow-sm" : "hover:bg-gray-50 border-gray-200"}`}
-                      >
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                            {idx === 0 && (
-                              <span className="text-xs bg-orange-100 text-orange-500 px-2 py-0.5 rounded-full font-semibold">
-                                Latest
-                              </span>
-                            )}
-                            <p className="font-semibold text-sm text-gray-700">
-                              {item.activity_type}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs text-gray-400">
-                              {item.follow_up_date
-                                ? new Date(
-                                  item.follow_up_date,
-                                ).toLocaleDateString()
-                                : "—"}
-                            </span>
-                            <i
-                              className={`bi ${previewFollowUp?.follow_up_id === item.follow_up_id ? "bi-chevron-up" : "bi-chevron-down"} text-gray-400 text-xs`}
-                            ></i>
-                          </div>
-                        </div>
-                        <p className="text-xs text-gray-400 mt-1 truncate">
-                          {item.description}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </div>
-                {previewFollowUp && (
-                  <div className="mt-4 border border-orange-200 rounded-xl bg-gradient-to-br from-orange-50 to-white p-4 text-sm shadow-sm">
-                    <div className="flex justify-between items-center mb-3">
-                      <p className="font-bold text-orange-500 text-xs uppercase tracking-wide">
-                        Details
-                      </p>
-                      <button
-                        onClick={() => setPreviewFollowUp(null)}
-                        className="text-gray-400 hover:text-gray-600 text-xs"
-                      >
-                        ✕ Close
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-                      {[
-                        {
-                          label: "Activity Type",
-                          value: previewFollowUp.activity_type,
-                        },
-                        {
-                          label: "Follow-Up Date",
-                          value: previewFollowUp.follow_up_date
-                            ? new Date(
-                              previewFollowUp.follow_up_date,
-                            ).toLocaleDateString()
-                            : "—",
-                        },
-                        {
-                          label: "Contact Person",
-                          value: previewFollowUp.contact_person,
-                        },
-                        {
-                          label: "Follow-Up By",
-                          value: previewFollowUp.follow_up_by,
-                        },
-                      ].map(({ label, value }) => (
-                        <div key={label}>
-                          <p className="text-xs text-gray-400 font-medium">
-                            {label}
-                          </p>
-                          <p className="font-semibold text-gray-700 text-sm mt-0.5">
-                            {value || "—"}
-                          </p>
-                        </div>
-                      ))}
-                      <div>
-                        <p className="text-xs text-gray-400 font-medium">
-                          Status
-                        </p>
-                        <span
-                          className={`text-xs px-2.5 py-0.5 rounded-full font-semibold mt-0.5 inline-block ${previewFollowUp.status === "Completed" ? "bg-green-100 text-green-600" : previewFollowUp.status === "Cancelled" ? "bg-orange-100 text-orange-500" : "bg-orange-100 text-orange-600"}`}
-                        >
-                          {previewFollowUp.status}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-2.5">
-                      <p className="text-xs text-gray-400 font-medium">
-                        Description
-                      </p>
-                      <p className="text-gray-700 mt-1 text-sm whitespace-pre-wrap">
-                        {previewFollowUp.description || "—"}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
-              <button
-                onClick={() => {
-                  setShowUpdateModal(false);
-                  setSelectedFiles([]);
-                  setPreviewFollowUp(null);
-                }}
-                className="px-5 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-100 transition-all"
-              >
-                Cancel
-              </button>
-              <button onClick={handleUpdate} disabled={updateLoading}
-                className={`px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all shadow-md shadow-orange-200 flex items-center gap-2
-                ${updateLoading
-                    ? "bg-orange-400 cursor-not-allowed"
-                    : "bg-orange-500 hover:bg-orange-600"
+                onClick={() => setActiveTab("Pending")}
+                className={`pb-3 px-3 text-sm font-medium relative cursor-pointer transition-all ${activeTab === "Pending"
+                    ? "text-blue-600"
+                    : "text-gray-400 hover:text-gray-600"
                   }`}
               >
-
-                {updateLoading && (
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                {" "}
+                Pending
+                <span className="ml-2 bg-blue-100 text-blue-600 cursor-pointer text-xs px-2 py-0.5 rounded-full">
+                  {pendingCount}
+                </span>
+                {activeTab === "Pending" && (
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></div>
                 )}
-
-                {updateLoading ? "Adding..." : "Add Follow-Up"}
-
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* FILE UPLOAD MODAL */}
-
-      {showPopup && (
-        <div className="fixed inset-0 bg-gray-900/30  flex items-center justify-center backdrop-blur-sm  z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-80">
-            <h2 className="text-lg font-semibold mb-3 text-center">
-              Confirm Status Change
-            </h2>
-
-            <p className="text-sm text-gray-600 mb-5">
-              Are you sure you want to change status?
-            </p>
-
-            <div className="flex justify-end gap-3">
-
-              <button
-                onClick={() => setShowPopup(false)}
-                className="px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-100 transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmStatusChange}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-md shadow-orange-200"
-              >
-                Yes Change
-              </button> 
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Multer Popup Model Code */}
-
-      {showPopup && (
-        <div className="fixed inset-0 bg-gray-900/30 z-40 bg-opacity-30 flex items-center justify-center">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-80">
-            <h2 className="text-lg font-semibold mb-3 text-center">
-              Confirm Status Change
-            </h2>
-
-            <p className="text-sm text-gray-600 mb-5">
-              Are you sure you want to change status?
-            </p>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={confirmStatusChange}
-                className="px-4 py-2 text-sm bg-blue-600 text-white rounded"
-              >
-                Yes Change
               </button>
 
               <button
-                onClick={() => setShowPopup(false)}
-                className="px-4 py-2 text-sm border rounded"
+                onClick={() => setActiveTab("Won")}
+                className={`pb-3 text-sm font-medium cursor-pointer relative ${activeTab === "Won" ? "text-green-600" : "text-gray-500"
+                  }`}
               >
-                Cancel
+                Won
+                <span className="ml-2 bg-green-100 text-green-600 text-xs px-2 py-0.5 rounded-full">
+                  {wonCount}
+                </span>
+                {activeTab === "Won" && (
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-green-600"></div>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab("Lost")}
+                className={`pb-3 text-sm font-medium relative ${activeTab === "Lost" ? "text-red-600" : "text-gray-500"
+                  }`}
+              >
+                Lost
+                <span className="ml-2 bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">
+                  {lostCount}
+                </span>
+                {activeTab === "Lost" && (
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-red-600"></div>
+                )}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-      {/* file upload modal */}
-      {showFileModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white w-[580px] rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-            {/* Header */}
-            <div className="flex justify-between items-center px-6 py-4 from-orange-100 to-white border-b border-gray-100 bg-gradient-to-r">
-              <div className="flex items-center gap-2">
-                <i className="bi bi-cloud-upload text-orange-500 text-base"></i>
-                <h2 className="text-sm font-semibold text-white uppercase tracking-wide">
-                  Upload Files
-                </h2>
-              </div>
-              <button
-                onClick={() => setShowFileModal(false)}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-orange-100 text-gray-400 hover:text-orange-500 transition-all"
-              >
-                ✕
-              </button>{" "}
-            </div>
 
-            {/* Body */}
-            <div className="flex gap-5 p-6">
-              <div
-                className="w-1/2 border-2 border-dashed border-orange-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center bg-orange-50/50 hover:bg-orange-50 transition-all cursor-pointer"
-                onDrop={handleDrop}
-                onDragOver={(e) => e.preventDefault()}
-                onClick={() => document.getElementById("fileInput").click()}
-              >
-                <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center mb-3">
-                  <i className="bi bi-cloud-arrow-up text-orange-500 text-2xl"></i>
-                </div>
-                <p className="font-bold text-gray-700 text-sm">
-                  Drag files here
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  or{" "}
-                  <span className="text-orange-500 font-semibold underline">
-                    browse
-                  </span>
-                </p>
-                <p className="text-xs text-gray-400 mt-3 bg-white border border-gray-100 rounded-lg px-3 py-1">
-                  JPG · PNG · PDF · Max 2MB
-                </p>
-                <input
-                  id="fileInput"
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={handleSelect}
-                />
-              </div>
+            {/* table */}
 
-              <div className="w-1/2 flex flex-col justify-center">
-                {selectedFiles.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-300 py-8">
-                    <i className="bi bi-file-earmark text-4xl mb-2"></i>
-                    <p className="text-sm">No files selected</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-                      Selected Files ({selectedFiles.length})
-                    </p>
-                    {selectedFiles.map((file, i) => (
-                      <div
-                        key={i}
-                        className="flex justify-between items-center border border-gray-100 rounded-xl px-3 py-2.5 bg-gray-50 hover:bg-white shadow-sm transition-all"
+            <div className="p-4">
+              {loading ? (
+                <div className="text-center py-10 text-gray-400">Loading...</div>
+              ) : (
+                // <div className="overflow-x-auto overflow-y-auto max-h-[500px]">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-100">
+                        <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          #
+                        </th>
+                        <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          Company Name
+                        </th>
+                        <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          Customer Name
+                        </th>
+                        <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          Lead Title
+                        </th>
+                        <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          Product Category
+                        </th>
+                        <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          Source
+                        </th>
+                        <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          Assignee
+                        </th>
+                        <th className="py-3 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          Next Follow Up
+                        </th>
+                        <th className="py-3 px-3 text-left  text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          Created
+                        </th>
+                        <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          Status
+                        </th>
+
+                        <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {filteredLeads.length > 0 ? (
+                        paginatedLeads.map((lead, index) => (
+                          <tr
+                            key={lead.lead_id}
+                            className="border-b border-gray-50 hover:bg-indigo-50/30 transition-colors"
+                          >
+                            <td className="py-3 px-2">
+                              {(currentPage - 1) * itemsPerPage + index + 1}
+                            </td>
+
+                            <td className="font-medium px-2">
+                              {lead.company_name}
+                            </td>
+
+                            <td className="text-orange-500 cursor-pointer px-3">
+                              {lead.customer_name}
+                            </td>
+
+                            <td className="px-2">{lead.lead_title}</td>
+
+                            <td className="text-gray-500 px-3">
+                              {lead.product_category || "-"}
+                            </td>
+
+                            <td className="px-3">{lead.source}</td>
+
+                            <td
+                              style={{
+                                display: "flex",
+                                gap: "1px",
+                                alignItems: "center",
+                              }}
+                              className="py-2 px-4"
+                            >
+                              {lead.assignee
+                                ? String(lead.assignee)
+                                  .split(",")
+                                  .map((name, index) => {
+                                    const letter = name
+                                      .trim()
+                                      .charAt(0)
+                                      .toUpperCase();
+
+                                    return (
+                                      <div
+                                        key={index}
+                                        title={name.trim()}
+                                        className="px-3 py-1.5 bg-blue-800 text-white rounded-full font-semibold text-sm flex justify-center items-center min-w-[28px] text-center select-none"
+                                      >
+                                        {letter}
+                                      </div>
+                                    );
+                                  })
+                                : "-"}
+                            </td>
+
+                            <td className=" text-center">
+                              {lead.next_follow_up_date ? (
+                                <span
+                                  onClick={() => {
+                                    if (lead.status === "Pending") {
+                                      openUpdateModal(lead);
+                                    }
+                                  }}
+                                  className={`${lead.status === "Pending"
+                                      ? "cursor-pointer text-blue-800"
+                                      : "text-gray-400 cursor-not-allowed"
+                                    }`}
+                                >
+                                  {new Date(
+                                    lead.next_follow_up_date,
+                                  ).toLocaleDateString()}
+                                </span>
+                              ) : (
+                                <button
+                                  disabled={lead.status !== "Pending"}
+                                  onClick={() => {
+                                    if (lead.status !== "Pending") return;
+                                    setSelectedLead(lead);
+                                    setSelectedFiles([]);
+                                    setForm({
+                                      follow_up_date: new Date()
+                                        .toISOString()
+                                        .split("T")[0],
+                                      activity_type: "",
+                                      follow_up_by: "",
+                                      contact_person: "",
+                                      description: "",
+                                    });
+                                    setShowModal(true);
+                                  }}
+                                  className={`w-9 h-9 rounded-full border flex items-center justify-center mx-auto
+                                                                          ${lead.status ===
+                                      "Pending"
+                                      ? "hover:bg-gray-100 cursor-pointer"
+                                      : "bg-gray-100 cursor-not-allowed opacity-60"
+                                    }`}
+                                >
+                                  <i className="bi bi-plus text-lg"></i>
+                                </button>
+                              )}
+                            </td>
+
+                            <td className="text-gray-500 px-2">
+                              {new Date(lead.created_at).toLocaleDateString()}
+                            </td>
+
+                            <td>
+                              <select
+                                value={lead.status}
+                                onMouseDown={(e) => {
+                                  if (
+                                    !isAdmin &&
+                                    (lead.status === "Won" ||
+                                      lead.status === "Lost")
+                                  ) {
+                                    e.preventDefault(); // stop dropdown open
+                                    toast.error("Only Admin can change Status");
+                                  }
+                                }}
+                                onChange={(e) => {
+                                  handleStatusChange(
+                                    lead.lead_id,
+                                    e.target.value,
+                                  );
+                                }}
+                                className={`border rounded-sm px-3 py-1 text-xs font-semibold outline-none cursor-pointer
+
+                                ${lead.status === "Pending"
+                                    ? "border-gray-200 bg-gray-50 text-gray-700 cursor-pointer"
+                                    : ""
+                                  }
+
+                                ${lead.status === "Won"
+                                    ? "border-green-200 bg-green-50 text-green-700 cursor-pointer"
+                                    : ""
+                                  }
+
+                                ${lead.status === "Lost"
+                                    ? "border-red-200 bg-red-50 text-red-700 cursor-pointer"
+                                    : ""
+                                  }
+                                `}
+                              >
+                                <option value="Pending"> Pending </option>
+                                <option value="Won"> Won </option>
+                                <option value="Lost"> Lost </option>
+                              </select>
+                            </td>
+
+                            <td className="text-lg">
+                              {lead.status === "Pending" ? (
+                                <>
+                                  <button
+                                    onClick={() => handleView(lead)}
+                                    className="text-gray-400 hover:text-green-600 cursor-pointer"
+                                  >
+                                    <i className="bi bi-eye text-xl"></i>
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleEdit(lead)}
+                                    className="text-gray-400 hover:text-blue-800 mx-2 cursor-pointer"
+                                  >
+                                    <i className="bi bi-pencil-square"></i>
+                                  </button>
+
+                                  <button
+                                    onClick={() => openDeleteModal(lead)}
+                                    className="text-gray-400 hover:text-red-600 cursor-pointer"
+                                  >
+                                    <i className="bi bi-trash3"></i>
+                                  </button>
+                                </>
+                              ) : (
+                                <span className="text-gray-300 cursor-not-allowed">
+                                  <i className="bi bi-lock text-lg"></i>
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan="11"
+                            className="text-center py-10 text-gray-400"
+                          >
+                            No Data Found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between px-6 py-3 border-gray-200 bg-white rounded-b-lg">
+                      {/* Previous Button */}
+                      <button
+                        type="button"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 text-sm font-medium rounded-md border bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
-                            <i className="bi bi-file-earmark text-orange-500 text-xs"></i>
-                          </div>
-                          <span className="text-sm text-gray-700 truncate">
+                        Previous
+                      </button>
+
+                      {/* Page Info Centered */}
+                      <span className="text-sm text-gray-600">
+                        Page <span className="font-semibold">{currentPage}</span>{" "}
+                        of <span className="font-semibold">{totalPages}</span>
+                      </span>
+
+                      {/* Next Button */}
+                      <button
+                        type="button"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 text-sm font-medium rounded-md border bg-blue-800 text-white hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Multer Popup Model Code */}
+
+        {/* ✅ DELETE CONFIRMATION MODAL */}
+        {showDeleteModal && leadToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white w-[400px] rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
+              <div className="flex justify-between items-center px-6 py-4 bg-gradient-to-r from-red-50 to-white border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-red-500 inline-block"></span>
+                  <h2 className="text-sm font-semibold text-gray-700 tracking-wide uppercase">
+                    Delete Lead
+                  </h2>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setLeadToDelete(null);
+                  }}
+                  className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-red-100 text-gray-400 hover:text-red-500 transition-all"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="flex flex-col items-center justify-center px-6 py-8 gap-4">
+                <div className="w-20 h-20 rounded-full bg-red-50 border-2 border-red-100 flex items-center justify-center">
+                  <i className="bi bi-trash3 text-3xl text-red-400"></i>
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-800 font-semibold text-base">
+                    {leadToDelete.customer_name}
+                  </p>
+                  <p className="text-gray-400 text-sm mt-1">
+                    This action cannot be undone. Are you sure?
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-center gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setLeadToDelete(null);
+                  }}
+                  className="px-6 py-2 rounded-xl text-sm font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-100 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleteLoading}
+                  className="px-6 py-2 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-60 transition-all shadow-md shadow-red-200"
+                >
+                  {deleteLoading ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ADD FOLLOW-UP MODAL */}
+        {showModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="bg-white w-[480px] rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+              {/* Header */}
+              <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-white">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-orange-500 inline-block"></span>
+                  <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                    Add Lead Activities
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-orange-100 text-gray-400 hover:text-orange-500 transition-all"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="px-6 py-5 grid grid-cols-2 gap-x-4 gap-y-3">
+                <div className="col-span-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Follow-Up Date
+                  </label>
+                  <input
+                    type="date"
+                    name="follow_up_date"
+                    value={form.follow_up_date}
+                    onChange={handleChange}
+                    className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 focus:border-transparent outline-none bg-gray-50 transition-all"
+                  />
+                </div>
+                <div className="col-span-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Activity Type <span className="text-orange-500">*</span>
+                  </label>
+                  <select
+                    name="activity_type"
+                    value={form.activity_type}
+                    onChange={handleChange}
+                    className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50 transition-all"
+                  >
+                    <option value="">-- Select --</option>
+                    <option>Call</option>
+                    <option>Meeting</option>
+                    <option>Email</option>
+                  </select>
+                </div>
+                <div className="col-span-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Follow-Up By
+                  </label>
+                  <select
+                    name="follow_up_by"
+                    value={form.follow_up_by}
+                    onChange={handleChange}
+                    className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50 transition-all"
+                  >
+                    <option value="">Select User</option>
+
+                    {assignee.map((item) => (
+                      <option key={item.id} value={item.name}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-span-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Contact Person <span className="text-orange-500">*</span>
+                  </label>
+                  <div className="flex mt-1.5">
+                    <input
+                      name="contact_person"
+                      value={form.contact_person}
+                      onChange={handleChange}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50 transition-all"
+                    />
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Description <span className="text-orange-500">*</span>
+                  </label>
+                  <textarea
+                    name="description"
+                    value={form.description}
+                    onChange={handleChange}
+                    className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50 h-20 resize-none transition-all"
+                  />
+                </div>
+                <div className="col-span-2 border-2 border-dashed border-orange-100 rounded-xl p-3 text-center bg-orange-50/40">
+                  <button
+                    onClick={() => setShowFileModal(true)}
+                    className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-2 mx-auto transition-all shadow-md shadow-orange-200"
+                  >
+                    <i className="bi bi-cloud-upload"></i> Browse Files
+                  </button>
+                  {selectedFiles.length > 0 && (
+                    <div className="mt-2 space-y-1 text-left">
+                      {selectedFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex justify-between items-center bg-white px-3 py-1 text-xs rounded-lg border border-gray-100 shadow-sm"
+                        >
+                          <span className="text-gray-600 truncate">
                             {file.name}
                           </span>
+                          <button
+                            onClick={() =>
+                              setSelectedFiles(
+                                selectedFiles.filter((_, i) => i !== index),
+                              )
+                            }
+                            className="text-orange-500 hover:text-orange-600 ml-2"
+                          >
+                            ✕
+                          </button>
                         </div>
-                        <button
-                          onClick={() =>
-                            setSelectedFiles(
-                              selectedFiles.filter((_, index) => index !== i),
-                            )
-                          }
-                          className="text-gray-300 hover:text-red-500 ml-2 flex-shrink-0 transition-all"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-400 mt-1.5">
+                    Max 2MB · JPG, PNG, PDF
+                  </p>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="px-5 py-2 text-sm font-medium border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-100 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={btnLoading}
+                  className={`px-6 py-2 text-sm font-semibold text-white rounded-xl transition-all shadow-md shadow-orange-200 flex items-center gap-2
+                ${btnLoading
+                      ? "bg-orange-400 cursor-not-allowed"
+                      : "bg-orange-500 hover:bg-orange-600"
+                    }`}
+                >
+                  {btnLoading && (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  )}
+
+                  {btnLoading ? "Adding..." : "Add"}
+                </button>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Footer */}
-            <div className="flex justify-end px-6 py-4 border-t border-gray-100 bg-gray-50">
-              <button
-                onClick={() => setShowFileModal(false)}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-xl text-sm font-semibold transition-all shadow-md shadow-orange-200"
-              >
-                Done
-              </button>
+        {/* UPDATE FOLLOW-UP MODAL */}
+        {showUpdateModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/30 ">
+            <div className="bg-white w-full max-w-[800px] rounded-sm shadow-xl border border-gray-100 overflow-hidden">
+              {/* Header */}
+              <div className="flex justify-between items-center px-6 py-4  bg-gradient-to-r from-orange-100 to-white">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-orange-500 inline-block"></span>
+                  <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                    Update Lead Activities
+                  </h2>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowUpdateModal(false);
+                    setSelectedFiles([]);
+                    setPreviewFollowUp(null);
+                  }}
+                  className="w-7 h-7 flex items-center justify-center  text-orange-500 text-md"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="flex">
+                {/* LEFT - Form */}
+                <div className="w-1/2 px-6 py-5 border-r border-gray-100">
+                  <p className="text-xs font-bold text-orange-500 uppercase tracking-widest mb-4">
+                    Add New Follow-Up
+                  </p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Follow-Up Date
+                      </label>
+                      <input
+                        type="date"
+                        value={updateForm.follow_up_date}
+                        onChange={(e) =>
+                          setUpdateForm({
+                            ...updateForm,
+                            follow_up_date: e.target.value,
+                          })
+                        }
+                        className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Activity Type *
+                      </label>
+                      <select
+                        value={updateForm.activity_type}
+                        onChange={(e) =>
+                          setUpdateForm({
+                            ...updateForm,
+                            activity_type: e.target.value,
+                          })
+                        }
+                        className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50"
+                      >
+                        <option value="">-- Select --</option>
+                        <option>Call</option>
+                        <option>Meeting</option>
+                        <option>Email</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Follow-Up By
+                      </label>
+                      <select
+                        value={updateForm.follow_up_by}
+                        onChange={(e) =>
+                          setUpdateForm({
+                            ...updateForm,
+                            follow_up_by: e.target.value,
+                          })
+                        }
+                        className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50"
+                      >
+                        <option value="">Select User</option>
+
+                        {assignee.map((item) => (
+                          <option key={item.id} value={item.name}>
+                            {item.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Contact Person *
+                      </label>
+                      <input
+                        value={updateForm.contact_person}
+                        onChange={(e) =>
+                          setUpdateForm({
+                            ...updateForm,
+                            contact_person: e.target.value,
+                          })
+                        }
+                        className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Description *
+                      </label>
+                      <textarea
+                        value={updateForm.description}
+                        onChange={(e) =>
+                          setUpdateForm({
+                            ...updateForm,
+                            description: e.target.value,
+                          })
+                        }
+                        className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50 h-20 resize-none"
+                      />
+                    </div>
+                    <div className="col-span-2 border-2 border-dashed border-orange-100 rounded-xl p-3 text-center bg-orange-50/40">
+                      <button
+                        onClick={() => setShowFileModal(true)}
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-2 mx-auto transition-all shadow-md shadow-orange-200"
+                      >
+                        <i className="bi bi-cloud-upload"></i> Browse Files
+                      </button>
+                      {selectedFiles.length > 0 && (
+                        <div className="mt-2 space-y-1 text-left">
+                          {selectedFiles.map((file, index) => (
+                            <div
+                              key={index}
+                              className="flex justify-between items-center bg-white px-3 py-1 text-xs rounded-lg border border-gray-100 shadow-sm"
+                            >
+                              <span className="text-gray-600 truncate">
+                                {file.name}
+                              </span>
+                              <button
+                                onClick={() =>
+                                  setSelectedFiles(
+                                    selectedFiles.filter((_, i) => i !== index),
+                                  )
+                                }
+                                className="text-orange-400 hover:text-orange-600 ml-2"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1.5">
+                        Max 2MB · JPG, PNG, PDF
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* RIGHT - History */}
+                <div className="w-1/2 px-6 py-5 flex flex-col">
+                  <div className="flex justify-between items-center mb-4">
+                    <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">
+                      Follow-Up History
+                    </p>
+                    <span className="text-xs bg-orange-50 text-orange-500 px-2.5 py-1 rounded-full font-semibold border border-orange-100">
+                      {followUpHistory.length} record(s)
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {followUpHistory.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 text-gray-300">
+                        <i className="bi bi-clock-history text-3xl mb-2"></i>
+                        <p className="text-sm">No history found</p>
+                      </div>
+                    ) : (
+                      followUpHistory.map((item, idx) => (
+                        <div
+                          key={item.follow_up_id}
+                          onClick={() =>
+                            setPreviewFollowUp(
+                              previewFollowUp?.follow_up_id === item.follow_up_id
+                                ? null
+                                : item,
+                            )
+                          }
+                          className={`border rounded-xl p-3 cursor-pointer transition-all select-none ${previewFollowUp?.follow_up_id === item.follow_up_id ? "border-orange-400 bg-orange-50 shadow-sm" : "hover:bg-gray-50 border-gray-200"}`}
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              {idx === 0 && (
+                                <span className="text-xs bg-orange-100 text-orange-500 px-2 py-0.5 rounded-full font-semibold">
+                                  Latest
+                                </span>
+                              )}
+                              <p className="font-semibold text-sm text-gray-700">
+                                {item.activity_type}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-gray-400">
+                                {item.follow_up_date
+                                  ? new Date(
+                                    item.follow_up_date,
+                                  ).toLocaleDateString()
+                                  : "—"}
+                              </span>
+                              <i
+                                className={`bi ${previewFollowUp?.follow_up_id === item.follow_up_id ? "bi-chevron-up" : "bi-chevron-down"} text-gray-400 text-xs`}
+                              ></i>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1 truncate">
+                            {item.description}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  {previewFollowUp && (
+                    <div className="mt-4 border border-orange-200 rounded-xl bg-gradient-to-br from-orange-50 to-white p-4 text-sm shadow-sm">
+                      <div className="flex justify-between items-center mb-3">
+                        <p className="font-bold text-orange-500 text-xs uppercase tracking-wide">
+                          Details
+                        </p>
+                        <button
+                          onClick={() => setPreviewFollowUp(null)}
+                          className="text-gray-400 hover:text-gray-600 text-xs"
+                        >
+                          ✕ Close
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+                        {[
+                          {
+                            label: "Activity Type",
+                            value: previewFollowUp.activity_type,
+                          },
+                          {
+                            label: "Follow-Up Date",
+                            value: previewFollowUp.follow_up_date
+                              ? new Date(
+                                previewFollowUp.follow_up_date,
+                              ).toLocaleDateString()
+                              : "—",
+                          },
+                          {
+                            label: "Contact Person",
+                            value: previewFollowUp.contact_person,
+                          },
+                          {
+                            label: "Follow-Up By",
+                            value: previewFollowUp.follow_up_by,
+                          },
+                        ].map(({ label, value }) => (
+                          <div key={label}>
+                            <p className="text-xs text-gray-400 font-medium">
+                              {label}
+                            </p>
+                            <p className="font-semibold text-gray-700 text-sm mt-0.5">
+                              {value || "—"}
+                            </p>
+                          </div>
+                        ))}
+                        <div>
+                          <p className="text-xs text-gray-400 font-medium">
+                            Status
+                          </p>
+                          <span
+                            className={`text-xs px-2.5 py-0.5 rounded-full font-semibold mt-0.5 inline-block ${previewFollowUp.status === "Completed" ? "bg-green-100 text-green-600" : previewFollowUp.status === "Cancelled" ? "bg-orange-100 text-orange-500" : "bg-orange-100 text-orange-600"}`}
+                          >
+                            {previewFollowUp.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-2.5">
+                        <p className="text-xs text-gray-400 font-medium">
+                          Description
+                        </p>
+                        <p className="text-gray-700 mt-1 text-sm whitespace-pre-wrap">
+                          {previewFollowUp.description || "—"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
+                <button
+                  onClick={() => {
+                    setShowUpdateModal(false);
+                    setSelectedFiles([]);
+                    setPreviewFollowUp(null);
+                  }}
+                  className="px-5 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-100 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdate}
+                  disabled={updateLoading}
+                  className={`px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all shadow-md shadow-orange-200 flex items-center gap-2
+                ${updateLoading
+                      ? "bg-orange-400 cursor-not-allowed"
+                      : "bg-orange-500 hover:bg-orange-600"
+                    }`}
+                >
+                  {updateLoading && (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  )}
+
+                  {updateLoading ? "Adding..." : "Add Follow-Up"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-    </>
-  );
+        {/* FILE UPLOAD MODAL */}
+
+        {showPopup && (
+          <div className="fixed inset-0 bg-gray-900/30  flex items-center justify-center backdrop-blur-sm  z-50">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-80">
+              <h2 className="text-lg font-semibold mb-3 text-center">
+                Confirm Status Change
+              </h2>
+
+              <p className="text-sm text-gray-600 mb-5">
+                Are you sure you want to change status?
+              </p>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowPopup(false)}
+                  className="px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-100 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmStatusChange}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-md shadow-orange-200"
+                >
+                  Yes Change
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Multer Popup Model Code */}
+
+        {showPopup && (
+          <div className="fixed inset-0 bg-gray-900/30 z-40 bg-opacity-30 flex items-center justify-center">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-80">
+              <h2 className="text-lg font-semibold mb-3 text-center">
+                Confirm Status Change
+              </h2>
+
+              <p className="text-sm text-gray-600 mb-5">
+                Are you sure you want to change status?
+              </p>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={confirmStatusChange}
+                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded"
+                >
+                  Yes Change
+                </button>
+
+                <button
+                  onClick={() => setShowPopup(false)}
+                  className="px-4 py-2 text-sm border rounded"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* file upload modal */}
+        {showFileModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/30">
+            <div className="bg-white w-[580px] rounded-sm shadow-2xl border border-gray-100 overflow-hidden">
+              {/* Header */}
+              <div className="flex justify-between items-center px-6 py-4 from-orange-100 to-white border-b border-gray-100 bg-gradient-to-r">
+                <div className="flex items-center gap-2">
+                  <i className="bi bi-cloud-upload text-orange-500 text-base"></i>
+                  <h2 className="text-sm font-semibold text-white uppercase tracking-wide">
+                    Upload Files
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setShowFileModal(false)}
+                  className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-orange-100 text-gray-400 hover:text-orange-500 transition-all"
+                >
+                  ✕
+                </button>{" "}
+              </div>
+
+              {/* Body */}
+              <div className="flex gap-5 p-6">
+                <div
+                  className="w-1/2 border-2 border-dashed border-orange-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center bg-orange-50/50 hover:bg-orange-50 transition-all cursor-pointer"
+                  onDrop={handleDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  onClick={() => document.getElementById("fileInput").click()}
+                >
+                  <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center mb-3">
+                    <i className="bi bi-cloud-arrow-up text-orange-500 text-2xl"></i>
+                  </div>
+                  <p className="font-bold text-gray-700 text-sm">
+                    Drag files here
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    or{" "}
+                    <span className="text-orange-500 font-semibold underline">
+                      browse
+                    </span>
+                  </p>
+                  <p className="text-xs text-gray-400 mt-3 bg-white border border-gray-100 rounded-lg px-3 py-1">
+                    JPG · PNG · PDF · Max 2MB
+                  </p>
+                  <input
+                    id="fileInput"
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleSelect}
+                  />
+                </div>
+
+                <div className="w-1/2 flex flex-col justify-center">
+                  {selectedFiles.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-300 py-8">
+                      <i className="bi bi-file-earmark text-4xl mb-2"></i>
+                      <p className="text-sm">No files selected</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+                        Selected Files ({selectedFiles.length})
+                      </p>
+                      {selectedFiles.map((file, i) => (
+                        <div
+                          key={i}
+                          className="flex justify-between items-center border border-gray-100 rounded-xl px-3 py-2.5 bg-gray-50 hover:bg-white shadow-sm transition-all"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center flex-shrink-0">
+                              <i className="bi bi-file-earmark text-orange-500 text-xs"></i>
+                            </div>
+                            <span className="text-sm text-gray-700 truncate">
+                              {file.name}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() =>
+                              setSelectedFiles(
+                                selectedFiles.filter((_, index) => index !== i),
+                              )
+                            }
+                            className="text-gray-300 hover:text-red-500 ml-2 flex-shrink-0 transition-all"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-end px-6 py-4 border-t border-gray-100 bg-gray-50">
+                <button
+                  onClick={() => setShowFileModal(false)}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-xl text-sm font-semibold transition-all shadow-md shadow-orange-200"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* VIEW LEAD MODAL */}
+        {showViewModal && viewLead && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/30">
+            <div className="bg-white w-full max-w-[600px] rounded-sm shadow-2xl overflow-hidden">
+              {/* Orange Header */}
+              <div className="from-orange-100 to-white  px-6 py-5 flex items-center justify-between border-b border-gray-100 bg-gradient-to-r">
+                <div className="flex items-center gap-4">
+                  <div className="w-7 h-7 rounded-full bg-orange-400 flex items-center justify-center">
+                    <i className="bi bi-person text-white text-xl"></i>
+                  </div>
+                  <div>
+                    <p className="text-white font-bold text-lg leading-tight">
+                      {viewLead.customer_name || "—"}
+                    </p>
+                    <p className="text-orange-100 text-sm">
+                      {viewLead.status || "—"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="w-9 h-9 rounded-full bg-orange-400 hover:bg-orange-300 flex items-center justify-center text-white transition-all"
+                >
+                  <i className="bi bi-x-lg text-sm"></i>
+                </button>
+              </div>
+
+              {/* Cards Grid */}
+              <div className="p-6 grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <i className="bi bi-building text-orange-400 text-lg"></i>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                      Company
+                    </p>
+                    <p className="text-sm font-bold text-gray-800">
+                      {viewLead.company_name || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <i className="bi bi-person-circle text-orange-400 text-lg"></i>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                      Customer Name
+                    </p>
+                    <p className="text-sm font-bold text-gray-800">
+                      {viewLead.customer_name || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <i className="bi bi-flag text-orange-400 text-lg"></i>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                      Source
+                    </p>
+                    <p className="text-sm font-bold text-gray-800">
+                      {viewLead.source || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <i className="bi bi-layers text-orange-400 text-lg"></i>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                      Product Category
+                    </p>
+                    <p className="text-sm font-bold text-gray-800">
+                      {viewLead.product_category || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <i className="bi bi-box-seam text-orange-400 text-lg"></i>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                      Product Name
+                    </p>
+                    <p className="text-sm font-bold text-gray-800">
+                      {viewLead.product_name || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <i className="bi bi-tag text-orange-400 text-lg"></i>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                      Category
+                    </p>
+                    <p className="text-sm font-bold text-gray-800">
+                      {viewLead.category || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <i className="bi bi-person-check text-orange-400 text-lg"></i>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                      Assignee
+                    </p>
+                    <p className="text-sm font-bold text-gray-800">
+                      {viewLead.assignee || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <i className="bi bi-calendar3 text-orange-400 text-lg"></i>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                      Created
+                    </p>
+                    <p className="text-sm font-bold text-gray-800">
+                      {viewLead.created_at
+                        ? new Date(viewLead.created_at).toLocaleDateString()
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <i className="bi bi-pencil text-orange-400 text-lg"></i>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                      Lead Title
+                    </p>
+                    <p className="text-sm font-bold text-gray-800">
+                      {viewLead.lead_title || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <i className="bi bi-chat-left-text text-orange-400 text-lg"></i>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                      Description
+                    </p>
+                    <p className="text-sm font-bold text-gray-800">
+                      {viewLead.description || "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-end px-6 py-4 border-t border-gray-100">
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="px-6 py-2 text-sm font-medium border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-100 transition-all"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+      );
 }

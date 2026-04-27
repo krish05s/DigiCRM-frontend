@@ -9,7 +9,6 @@ import axios from "redaxios";
 import { toast } from "react-toastify";
 
 export default function Page() {
-
   const companyRef = useRef(null);
   const categoryRef = useRef(null);
 
@@ -38,12 +37,11 @@ export default function Page() {
     priority: "",
     assignee: "",
     category: "",
-    description: ""
+    description: "",
   });
 
   // load lead data when page opens
   useEffect(() => {
-
     const lead = sessionStorage.getItem("editLead");
 
     if (!lead) {
@@ -68,89 +66,63 @@ export default function Page() {
       status: parsedLead.status || "",
 
       product_category:
-        parsedLead.product_category_id ||
-        parsedLead.product_category ||
-        "",
+        parsedLead.product_category_id || parsedLead.product_category || "",
 
-      product_name:
-        parsedLead.product_id ||
-        parsedLead.product_name ||
-        "",
+      product_name: parsedLead.product_id || parsedLead.product_name || "",
 
       priority: parsedLead.priority || "",
 
       assignee: parsedLead.assignee || "",
 
-      category:
-        parsedLead.category_id ||
-        parsedLead.category ||
-        "",
+      category: parsedLead.category_id || parsedLead.category || "",
 
-      description: parsedLead.description || ""
-
+      description: parsedLead.description || "",
     });
-
   }, []);
 
   // input change handler
   const handleChange = (e) => {
-
     const { name, value } = e.target;
 
     setFormData({
       ...formData,
-      [name]: value
+      [name]: value,
     });
-
   };
 
   // update API call
   const handleSubmit = async (e) => {
-
     e.preventDefault();
 
     try {
-
-      const response = await fetch(`${API_BASE}/api/lead/update/${formData.lead_id}`,
+      const response = await fetch(
+        `${API_BASE}/api/lead/update/${formData.lead_id}`,
 
         {
-
           method: "PUT",
 
           headers: {
-
             "Content-Type": "application/json",
-
           },
 
           body: JSON.stringify(formData),
-
-        }
-
+        },
       );
 
       const data = await response.json();
 
       if (data.success) {
-
         toast.success("Lead Updated Successfully");
 
         sessionStorage.removeItem("editLead");
 
         router.push("/sales/lead");
-
       } else {
-
         toast.error("Update Failed");
-
       }
-
     } catch (error) {
-
       console.error(error);
-
     }
-
   };
 
   // Dynamic Dropdown for Company and Customer
@@ -166,7 +138,6 @@ export default function Page() {
 
   //   fetchCompanyName();
   // }, []);
-
 
   // useEffect(() => {
   //   if (!formData.company_name) {
@@ -185,95 +156,80 @@ export default function Page() {
   //     .catch(() => setCustomername([]));
   // }, [formData.company_name]);
 
-
   // Dropdown for lead Source
   useEffect(() => {
     const fetchSource = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/api/inquiry-lead-source/read`,
-          { params: { status: 1 } }
+        const res = await axios.get(
+          `${API_BASE}/api/inquiry-lead-source/read`,
+          { params: { status: 1 } },
         );
         setLeadSource(res.data);
-      } catch { }
+      } catch {}
     };
 
     fetchSource();
   }, []);
 
-
   // Dropdown for lead Category
   useEffect(() => {
     const fetchCategory = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/api/inquiry-lead-category/read`,
-          { params: { status: 1 } }
+        const res = await axios.get(
+          `${API_BASE}/api/inquiry-lead-category/read`,
+          { params: { status: 1 } },
         );
         setLeadCategory(res.data);
-      } catch { }
+      } catch {}
     };
 
     fetchCategory();
   }, []);
 
-
   // Dropdown for Product Category
   useEffect(() => {
     const fetchProductCategory = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/api/product-category/read`,
-          { params: { status: 1 } }
-        );
+        const res = await axios.get(`${API_BASE}/api/product-category/read`, {
+          params: { status: 1 },
+        });
         setCategory(res.data);
-      } catch { }
+      } catch {}
     };
 
     fetchProductCategory();
   }, []);
 
-
   useEffect(() => {
-
     if (!formData.product_category) {
-
       setProductList([]);
 
       return;
-
     }
 
-    axios.get(
+    axios
+      .get(
+        `${API_BASE}/api/product-master/read`,
 
-      `${API_BASE}/api/product-master/read`,
+        {
+          params: {
+            search2: formData.product_category,
+          },
+        },
+      )
 
-      {
-
-        params: {
-
-          search2: formData.product_category
-
-        }
-
-      }
-
-    )
-
-      .then(res => setProductList(res.data))
+      .then((res) => setProductList(res.data))
 
       .catch(() => setProductList([]));
-
   }, [formData.product_category]);
-
 
   // Dynamic Dropdown for Assignee
   useEffect(() => {
-
     const fetchAssignee = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/api/manage-user/asignee`,
-          {
-            params: { status: 1 }
-          }
-        );
+        const res = await axios.get(`${API_BASE}/api/manage-user/asignee`, {
+          params: { status: 1 },
+        });
 
         const data = res.data.data || res.data || [];
 
@@ -282,7 +238,7 @@ export default function Page() {
           const firstName = item.name.split(" ")[0];
           return {
             value: firstName,
-            label: firstName
+            label: firstName,
           };
         });
         setAsignee(formatted);
@@ -293,104 +249,71 @@ export default function Page() {
     };
 
     fetchAssignee();
-
   }, []);
-
-
-
-
 
   return (
     <>
-
       <Header />
 
       <div className="bg-gray-100">
-
-
         {/* breadcrumb */}
 
         <div className="bg-white w-full rounded-2xl shadow-lg p-3 mt-1 mb-5 flex justify-between items-center">
-
           <p className="text-gray-700">
-
-            <Link href="/dashboard" className="mx-3 text-xl text-gray-400 hover:text-indigo-600">
-
+            <Link
+              href="/dashboard"
+              className="mx-3 text-xl text-gray-400 hover:text-indigo-600"
+            >
               <i className="bi bi-house"></i>
-
             </Link>
-
             <i className="bi bi-chevron-right"></i> Sales
-
             <i className="bi bi-chevron-right"></i>
-
             <button
-              onClick={() => {router.push("/sales/lead");}}
+              onClick={() => {
+                router.push("/sales/lead");
+              }}
               className="mx-3 hover:text-indigo-600"
             >
               Lead
             </button>
-
             <i className="bi bi-chevron-right"></i> Edit Lead
-
           </p>
-
         </div>
 
-
-
         <form onSubmit={handleSubmit} className="p-1 mx-4">
-
           <div className="min-h-4 bg-gray-100 p-2 flex justify-center">
-
             <div className="w-full max-w-4xl bg-white shadow-md rounded-xl p-6">
-
-
-              <h2 className="text-2xl font-semibold mb-2">
-
-                Lead Information
-
-              </h2>
+              <h2 className="text-2xl font-semibold mb-2">Lead Information</h2>
 
               <hr className="text-gray-200 mt-2 mb-3" />
 
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-gray-700">
-
-
                 <div>
+                  <label className="block mb-1">Company Name *</label>
 
-                  <label className="block mb-1">
-
-                    Company Name *
-
-                  </label>
-
-                  <input name="company_name" value={formData.company_name} onChange={handleChange} placeholder="Company Name" className="w-full border rounded-lg px-3 py-2" />
-
+                  <input
+                    name="company_name"
+                    value={formData.company_name}
+                    onChange={handleChange}
+                    placeholder="Company Name"
+                    className="w-full border rounded-lg px-3 py-2"
+                  />
                 </div>
 
-
                 <div>
+                  <label className="block mb-1">Customer Name *</label>
 
-                  <label className="block mb-1">
-
-                    Customer Name *
-
-                  </label>
-
-                  <input name="customer_name" value={formData.customer_name} onChange={handleChange} placeholder="Customer Name" className="w-full border rounded-lg px-3 py-2" />
-                    
+                  <input
+                    name="customer_name"
+                    value={formData.customer_name}
+                    onChange={handleChange}
+                    placeholder="Customer Name"
+                    className="w-full border rounded-lg px-3 py-2"
+                  />
                 </div>
 
-
                 <div>
-
-                  <label className="block mb-1">
-
-                    Lead Title *
-
-                  </label>
+                  <label className="block mb-1">Lead Title *</label>
 
                   <input
                     type="text"
@@ -399,19 +322,17 @@ export default function Page() {
                     onChange={handleChange}
                     className="w-full border rounded-lg px-3 py-2"
                   />
-
                 </div>
 
-
                 <div>
+                  <label className="block mb-1">Source *</label>
 
-                  <label className="block mb-1">
-
-                    Source *
-
-                  </label>
-
-                  <select name="source" value={formData.source} onChange={handleChange} className="w-full border rounded-lg px-3 py-2">
+                  <select
+                    name="source"
+                    value={formData.source}
+                    onChange={handleChange}
+                    className="w-full border rounded-lg px-3 py-2"
+                  >
                     <option value="">-- Select --</option>
                     {leadSource.map((item) => (
                       <option key={item.id} value={item.id}>
@@ -419,19 +340,17 @@ export default function Page() {
                       </option>
                     ))}
                   </select>
-
                 </div>
 
-
                 <div>
+                  <label className="block mb-1">Status</label>
 
-                  <label className="block mb-1">
-
-                    Status
-
-                  </label>
-
-                  <select name="status" value={formData.status} onChange={handleChange} className="w-full border rounded-lg px-3 py-2 ">
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    className="w-full border rounded-lg px-3 py-2 "
+                  >
                     <option>Qualified</option>
                     <option>Pending</option>
                     <option>Won</option>
@@ -440,43 +359,29 @@ export default function Page() {
                     <option>Technical Discussion</option>
                     <option>Call Initiated</option>
                   </select>
-
                 </div>
 
-
                 <div>
-
-                  <label className="block mb-1">
-                    Product Category *
-                  </label>
+                  <label className="block mb-1">Product Category *</label>
 
                   <select
                     name="product_category"
                     value={formData.product_category}
                     onChange={handleChange}
-                    className="w-full border rounded-lg px-3 py-2">
-
+                    className="w-full border rounded-lg px-3 py-2"
+                  >
                     <option value="">-- Select --</option>
 
                     {category.map((item) => (
-
                       <option key={item.id} value={item.id}>
                         {item.name}
                       </option>
-
                     ))}
-
                   </select>
-
                 </div>
 
-
                 <div>
-
-                  <label className="block mb-1">
-                    Product Name
-                  </label>
-
+                  <label className="block mb-1">Product Name</label>
 
                   <select
                     name="product_name"
@@ -484,73 +389,63 @@ export default function Page() {
                     onChange={handleChange}
                     className="w-full border rounded-lg px-3 py-2"
                   >
-
-                    <option value="">
-                      -- Select Product --
-                    </option>
+                    <option value="">-- Select Product --</option>
 
                     {productList.map((item) => (
-
                       <option key={item.id} value={item.id}>
                         {item.product_name}
                       </option>
-
                     ))}
-
                   </select>
                 </div>
 
-
                 <div>
+                  <label className="block mb-1">Priority *</label>
 
-                  <label className="block mb-1">
-
-                    Priority *
-
-                  </label>
-
-                  <select name="priority" value={formData.priority} onChange={handleChange} className="w-full border rounded-lg px-3 py-2">
-
+                  <select
+                    name="priority"
+                    value={formData.priority}
+                    onChange={handleChange}
+                    className="w-full border rounded-lg px-3 py-2"
+                  >
                     <option value="">-- Select --</option>
                     <option>High</option>
                     <option>Medium</option>
                     <option>Low</option>
-
                   </select>
                 </div>
 
-
                 <div>
-                  <label className="block mb-1">
-                    Assignee *
-                  </label>
-                  <Select isMulti instanceId="assignee-select" options={asignee}
-                    value={
-                      asignee.filter(option =>
-                        formData.assignee
-                          ?.split(",")
-                          .includes(option.value)
-                      )} onChange={(selectedOptions) => {
+                  <label className="block mb-1">Assignee *</label>
+                  <Select
+                    isMulti
+                    instanceId="assignee-select"
+                    options={asignee}
+                    value={asignee.filter((option) =>
+                      formData.assignee?.split(",").includes(option.value),
+                    )}
+                    onChange={(selectedOptions) => {
+                      const values = selectedOptions
+                        ? selectedOptions
+                            .map((option) => option.value)
+                            .join(",")
+                        : "";
 
-                        const values = selectedOptions
-                          ? selectedOptions.map(option => option.value).join(",")
-                          : "";
-
-                        setFormData({ ...formData, assignee: values });
-                      }} className="w-full" />
-
+                      setFormData({ ...formData, assignee: values });
+                    }}
+                    className="w-full"
+                  />
                 </div>
 
-
                 <div>
+                  <label className="block mb-1">Category</label>
 
-                  <label className="block mb-1">
-
-                    Category
-
-                  </label>
-
-                  <select name="category" value={formData.category} onChange={handleChange} className="w-full border rounded-lg px-3 py-2">
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleChange}
+                    className="w-full border rounded-lg px-3 py-2"
+                  >
                     <option value="">-- Select --</option>
                     {leadCategory.map((item) => (
                       <option key={item.id} value={item.id}>
@@ -558,19 +453,11 @@ export default function Page() {
                       </option>
                     ))}
                   </select>
-
                 </div>
-
               </div>
 
-
               <div className="mt-3">
-
-                <label className="block mb-1">
-
-                  Description
-
-                </label>
+                <label className="block mb-1">Description</label>
 
                 <textarea
                   name="description"
@@ -579,43 +466,28 @@ export default function Page() {
                   onChange={handleChange}
                   className="w-full border rounded-lg px-3 py-2"
                 />
-
               </div>
 
-
-
               <div className="mt-5 flex justify-end gap-4">
-
                 <button
                   type="button"
                   onClick={() => router.push("/sales/lead")}
                   className="px-6 py-2 rounded-lg border"
                 >
-
                   Cancel
-
                 </button>
-
 
                 <button
                   type="submit"
                   className="px-6 py-2 rounded-lg bg-blue-800 text-white"
                 >
-
                   Save
-
                 </button>
               </div>
             </div>
-
           </div>
-
         </form>
-
       </div>
-
     </>
-
   );
-
 }

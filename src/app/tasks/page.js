@@ -11,6 +11,7 @@ import { X, FileImage, FileText } from "lucide-react";
 export default function Page() {
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
+  const exportRef = useRef(null);
   const [formData, setFormData] = useState({
     task_name: "",
     status: "",
@@ -35,6 +36,8 @@ export default function Page() {
   const [token, setToken] = useState("");
   const [task, setTask] = useState([]);
   const [filters, setFilters] = useState({});
+
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const [scrollOffsets, setScrollOffsets] = useState({});
   const [loadingColumns, setLoadingColumns] = useState({});
@@ -68,6 +71,185 @@ export default function Page() {
       fetchData();
     }
   }, [token, filters]);
+
+  // ✅ Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (exportRef.current && !exportRef.current.contains(e.target)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // ========================
+  // ✅ EXPORT TO EXCEL
+  // ========================
+const exportToExcel = async () => {
+  try {
+    if (tasks.length === 0) {
+      toast.error("No data available to export");
+      return;
+    }
+
+    const XLSX = await import("xlsx");
+
+    const exportData = tasks.map((item, index) => ({
+      "#": index + 1,
+      "Task Name": item.task_name || "",
+      "Start Date": item.start_date
+        ? new Date(item.start_date)
+            .toLocaleDateString("en-GB")
+            .replace(/\//g, "-")
+        : "",
+      "Due Date": item.due_date
+        ? new Date(item.due_date)
+            .toLocaleDateString("en-GB")
+            .replace(/\//g, "-")
+        : "",
+      Priority: item.priority || "",
+      Assignee: item.assignee || "",
+      Status: item.status_name || "",
+      "Created By": item.created_by_name || "",
+      "Created At": item.created_at
+        ? new Date(item.created_at)
+            .toLocaleDateString("en-GB")
+            .replace(/\//g, "-")
+        : "",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Tasks");
+
+    const colWidths = Object.keys(exportData[0]).map((key) => ({
+      wch: Math.max(key.length, 18),
+    }));
+
+    worksheet["!cols"] = colWidths;
+
+    const now = new Date();
+    const date = now.toISOString().split("T")[0];
+    const time = now.toTimeString().slice(0, 5).replace(":", "-");
+
+    const fileName = `Tasks_(${date})_${time}.xlsx`;
+
+    XLSX.writeFile(workbook, fileName);
+
+    toast.success("Excel exported successfully");
+    setShowExportMenu(false);
+  } catch (err) {
+    console.error("Excel Export Error:", err);
+    toast.error("Excel export failed");
+  }
+};
+
+ // ✅ EXPORT TO PDF
+
+const exportToPDF = async () => {
+  try {
+    if (tasks.length === 0) {
+      toast.error("No data available to export");
+      return;
+    }
+
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
+
+    const doc = new jsPDF({ orientation: "landscape" });
+
+    doc.setFontSize(14);
+    doc.setTextColor(40, 40, 40);
+    doc.text("Tasks Report", 14, 15);
+
+    doc.setFontSize(9);
+    doc.setTextColor(120, 120, 120);
+    doc.text(
+      `Exported on: ${new Date().toLocaleDateString("en-GB")} | Total Records: ${
+        tasks.length
+      }`,
+      14,
+      22
+    );
+
+    const tableData = tasks.map((item, index) => [
+      index + 1,
+      item.task_name || "",
+      item.start_date
+        ? new Date(item.start_date)
+            .toLocaleDateString("en-GB")
+            .replace(/\//g, "-")
+        : "-",
+      item.due_date
+        ? new Date(item.due_date)
+            .toLocaleDateString("en-GB")
+            .replace(/\//g, "-")
+        : "-",
+      item.priority || "-",
+      item.assignee || "-",
+      item.status_name || "-",
+      item.created_by_name || "-",
+      item.created_at
+        ? new Date(item.created_at)
+            .toLocaleDateString("en-GB")
+            .replace(/\//g, "-")
+        : "-",
+    ]);
+
+    autoTable(doc, {
+      startY: 27,
+      head: [
+        [
+          "#",
+          "Task Name",
+          "Start Date",
+          "Due Date",
+          "Priority",
+          "Assignee",
+          "Status",
+          "Created By",
+          "Created At",
+        ],
+      ],
+      body: tableData,
+      theme: "grid",
+      styles: {
+        fontSize: 8,
+        cellPadding: 3,
+        textColor: [40, 40, 40],
+      },
+      headStyles: {
+        fillColor: [249, 115, 22],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 8,
+      },
+      alternateRowStyles: {
+        fillColor: [255, 247, 237],
+      },
+      columnStyles: {
+        0: { cellWidth: 8 },
+        1: { cellWidth: 40 },
+      },
+    });
+
+    const now = new Date();
+    const date = now.toISOString().split("T")[0];
+    const time = now.toTimeString().slice(0, 5).replace(":", "-");
+
+    const fileName = `Tasks_(${date})_${time}.pdf`;
+
+    doc.save(fileName);
+
+    toast.success("PDF exported successfully");
+    setShowExportMenu(false);
+  } catch (err) {
+    console.error("PDF Export Error:", err);
+    toast.error("PDF export failed");
+  }
+};
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -477,18 +659,61 @@ export default function Page() {
           </p>
         </div>
 
-        <div>
+        <div className="flex items-center gap-3">
           <input
             type="text"
             placeholder="🔍 Search..."
             value={filters.search || ""}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-            className="border w-sm   p-1 px-2 mx-5  border-gray-300 text-gray-700 placeholder-gray-400 rounded-sm focus:ring-1 outline-none focus:ring-orange-200 transition-all text-md"
+            className="border w-64 p-2 px-3 border-gray-300 text-gray-700 placeholder-gray-400 rounded-lg focus:ring-1 outline-none focus:ring-orange-200 transition-all text-sm"
           />
+
+          {/* Export Button */}
+          <div className="relative" ref={exportRef}>
+            <button
+              onClick={() => setShowExportMenu((prev) => !prev)}
+              className="flex items-center gap-2 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-gray-600 hover:text-blue-700 px-4 py-2 rounded-xl text-sm font-semibold tracking-wide transition-all shadow-sm"
+            >
+              <i className="bi bi-download text-base"></i>
+              Export
+              <i
+                className={`bi bi-chevron-down text-xs transition-transform duration-200 ${showExportMenu ? "rotate-180" : ""
+                  }`}
+              ></i>
+            </button>
+
+            {showExportMenu && (
+              <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
+                <button
+                  onClick={exportToExcel}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-all"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                    <i className="bi bi-file-earmark-excel text-green-600 text-sm"></i>
+                  </div>
+                  Export Excel
+                </button>
+
+                <div className="h-px bg-gray-100 mx-3"></div>
+
+                <button
+                  onClick={exportToPDF}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                    <i className="bi bi-file-earmark-pdf text-red-600 text-sm"></i>
+                  </div>
+                  Export PDF
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Add Task Button */}
           <button
             type="button"
             onClick={() => setShowForm(true)}
-            className="bg-orange-500 text-white px-4 py-2 rounded-lg shadow hover:bg-orange-600"
+            className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow-md transition-all"
           >
             + ADD TASK
           </button>
@@ -623,7 +848,7 @@ export default function Page() {
 
       {/* Table */}
       <form className="p-1 mx-4">
-        <div className="bg-white shadow-md rounded-2xl p-1 border border-gray-200">
+        <div className="bg-white shadow-md rounded-sm p-1 border border-gray-200">
           <table className=" w-full text-sm text-left text-gray-700 border-collapse mt-2 mb-2">
             <thead className="uppercase font-semibold text-xs tracking-wider bg-gray-50 border-b border-gray-100 text-gray-400">
               <tr>
@@ -654,16 +879,16 @@ export default function Page() {
                     <td className="py-1 px-4">
                       {item.start_date
                         ? new Date(item.start_date)
-                            .toLocaleDateString("en-GB")
-                            .replace(/\//g, "-")
+                          .toLocaleDateString("en-GB")
+                          .replace(/\//g, "-")
                         : "-"}
                     </td>
 
                     <td className="py-2 px-4 ">
                       {item.due_date
                         ? new Date(item.due_date)
-                            .toLocaleDateString("en-GB")
-                            .replace(/\//g, "-")
+                          .toLocaleDateString("en-GB")
+                          .replace(/\//g, "-")
                         : "-"}
                     </td>
 
@@ -685,13 +910,13 @@ export default function Page() {
                       {[
                         ...Array(
                           3 -
-                            (item.priority === "High"
-                              ? 3
-                              : item.priority === "Medium"
-                                ? 2
-                                : item.priority === "Low"
-                                  ? 1
-                                  : 0),
+                          (item.priority === "High"
+                            ? 3
+                            : item.priority === "Medium"
+                              ? 2
+                              : item.priority === "Low"
+                                ? 1
+                                : 0),
                         ),
                       ].map((_, i) => (
                         <span key={i} style={{ opacity: 0.3 }}>
@@ -996,8 +1221,8 @@ export default function Page() {
                   </div>
 
                   <div>
-                    <label className="block mb-2">Assignee *</label>
-                    <div className="relative">
+                    <label className="block mb-2 ">Assignee *</label>
+                    <div className="relative ">
                       <Select
                         isMulti
                         options={asignee.map((item) => ({
@@ -1007,17 +1232,86 @@ export default function Page() {
                         value={
                           formData.assignee
                             ? formData.assignee.split(",").map((n) => ({
-                                label: n.trim(),
-                                value: n.trim(),
-                              }))
+                              label: n.trim(),
+                              value: n.trim(),
+                            }))
                             : []
                         }
                         onChange={(selected) => {
                           const names = selected.map((s) => s.value).join(",");
                           setFormData({ ...formData, assignee: names });
                         }}
-                        className="w-full"
                         placeholder="Select Assignee"
+                        className="w-full "
+                        styles={{
+                          control: (provided, state) => ({
+                            ...provided,
+                            borderColor: state.isFocused
+                              ? "#F5C99A"
+                              : "#e5e7eb",
+                            boxShadow: state.isFocused
+                              ? "0 0 0 1px #F5C99A"
+                              : "none",
+                            "&:hover": {
+                              borderColor: "#F5C99A",
+                            },
+                            minHeight: "40px",
+                            borderRadius: "6px",
+                          }),
+
+                          // ✅ DROPDOWN BACKGROUND
+                          menu: (provided) => ({
+                            ...provided,
+                            backgroundColor: "bg-white",
+                            borderRadius: "0px",
+                            overflow: "hidden",
+                            padding: "4px", // remove default padding
+                          }),
+
+                          // ✅ EACH OPTION STYLE
+                          option: (provided, state) => ({
+                            ...provided,
+                            fontSize: "14px",
+                            backgroundColor: state.isSelected
+                              ? "#767676"
+                              : state.isFocused
+                                ? "#767676"
+                                : "#ffffff",
+                            color:
+                              state.isSelected || state.isFocused
+                                ? "#ffffff"
+                                : "#000000",
+                            cursor: "pointer",
+                            padding: "5px 6px",
+                            ":active": {
+                              ...provided[":active"],
+                              backgroundColor: "#767676", // ✅ this fixes the blue flash on click
+                            },
+                          }),
+                          placeholder: (provided) => ({
+                            ...provided,
+                            color: "#767676",
+                          }),
+
+                          multiValue: (provided) => ({
+                            ...provided,
+                            backgroundColor: "#767676",
+                          }),
+
+                          multiValueLabel: (provided) => ({
+                            ...provided,
+                            color: "#fff",
+                          }),
+
+                          multiValueRemove: (provided) => ({
+                            ...provided,
+                            color: "#fff",
+                            "&:hover": {
+                              backgroundColor: "#767676",
+                              color: "#fff",
+                            },
+                          }),
+                        }}
                       />
                     </div>
                   </div>
@@ -1058,7 +1352,7 @@ export default function Page() {
                       <h3 className="mb-3">Upload Documents</h3>
                       <button
                         type="button"
-                  className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-2 mx-auto transition-all shadow-md shadow-orange-200"
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-2 mx-auto transition-all shadow-md shadow-orange-200"
                         onClick={() => setShowModal(true)}
                       >
                         <i className="bi bi-cloud-arrow-up px-2"></i> Browse
@@ -1093,8 +1387,8 @@ export default function Page() {
                 </div>
 
                 {showDeleteModal && (
-                  <div className="fixed inset-0 flex items-center justify-center bg-gray-900/30 z-40">
-                    <div className="bg-white p-6 rounded-xl shadow-lg w-96 text-center">
+                  <div className="fixed inset-0 flex items-center justify-center bg-gray-900/30 z-50">
+                    <div className="bg-white p-6 rounded-sm shadow-lg w-90 text-center">
                       <h2 className="text-lg font-semibold mb-4 text-orange-500">
                         Confirm Delete
                       </h2>
@@ -1124,9 +1418,11 @@ export default function Page() {
                 {/* UPLOAD MODAL */}
                 {showModal && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60">
-                    <div className="w-[650px] bg-white rounded-xl shadow-xl">
+                    <div className="w-[650px] bg-white rounded-sm shadow-xl">
                       <div className=" p-4 flex justify-between from-orange-100  to-white bg-gradient-to-r">
-                        <h2 className="text-orange-500 text-lg">Upload Files</h2>
+                        <h2 className="text-orange-500 text-lg">
+                          Upload Files
+                        </h2>
                         <X
                           className="text-white cursor-pointer"
                           onClick={() => setShowModal(false)}
@@ -1159,18 +1455,18 @@ export default function Page() {
                           {newFiles.map((f) => (
                             <div
                               key={f.id}
-                              className="flex items-center justify-between gap-3 border border-gray-300 p-3 mb-3 rounded-3xl"
+                              className="flex items-center justify-between gap-3 border border-gray-300 p-3 mb-3 rounded-sm"
                             >
                               <div className="flex items-center gap-3">
                                 {f.file.type.includes("image") ? (
                                   <FileImage
                                     size={35}
-                                    className="text-blue-700"
+                                    className="text-orange-500"
                                   />
                                 ) : (
                                   <FileText
                                     size={35}
-                                    className="text-blue-700"
+                                    className="text-orange-500 text-sm"
                                   />
                                 )}
                                 <p className="truncate max-w-[240px]">
