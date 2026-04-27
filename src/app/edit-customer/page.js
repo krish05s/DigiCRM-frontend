@@ -10,1003 +10,1280 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function AddCustomer() {
-    const [activeTab, setActiveTab] = useState("update-customer");
+  const [activeTab, setActiveTab] = useState("update-customer");
 
-    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-    const [designations, setDesignations] = useState([]);
+  const [designations, setDesignations] = useState([]);
 
-    const [industries, setIndustries] = useState([]);
-    const [companyname, setCompanyname] = useState([]);
-    const [showaddressModal, setShowAddressModal] = useState(false);
-    const [showcontactsModal, setShowContactsModal] = useState(false);
+  const [industries, setIndustries] = useState([]);
+  const [companyname, setCompanyname] = useState([]);
+  const [showaddressModal, setShowAddressModal] = useState(false);
+  const [showcontactsModal, setShowContactsModal] = useState(false);
 
-    const router = useRouter();
+  const router = useRouter();
 
+  const [gstDetails, setGstDetails] = useState([]);
 
-    const [gstDetails, setGstDetails] = useState([]);
+  // Collect row id from localstorage
 
+  const [customerId, setCustomerId] = useState(null);
 
-    // Collect row id from localstorage
+  useEffect(() => {
+    const id = localStorage.getItem("customer_edit_id");
 
-    const [customerId, setCustomerId] = useState(null);
+    if (id) {
+      setCustomerId(id);
+    }
+  }, []);
 
-    useEffect(() => {
-        const id = localStorage.getItem("customer_edit_id");
+  // Website Validatation >>>
+  const websiteRef = useRef();
+  const [error, setError] = useState("");
 
-        if (id) {
-            setCustomerId(id);
-        }
-    }, []);
+  const handleBlur = () => {
+    let value = formData.website;
 
+    // Ensure https:// is present
+    if (!value.startsWith("https://")) {
+      value = "https://" + value.replace(/^https?:\/\//, "");
+    }
 
+    // Update formData
+    setFormData((prev) => ({ ...prev, website: value }));
 
+    // Validate domain
+    const domain = value.replace(/^https:\/\//, "");
+    const domainRegex = /^(www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/;
+    if (!domainRegex.test(domain)) {
+      setError("Invalid website (e.g., google.com or www.google.com)");
+    } else {
+      setError("");
+    }
+  };
 
-    // // Token Check
-    // const [role, setRole] = useState("");
-    // const router = useRouter();
+  // Keep cursor at the end when focusing
+  const handleFocus = (e) => {
+    const el = websiteRef.current;
+    const length = el.value.length;
+    el.setSelectionRange(length, length);
+    console.log(e.target.value);
+  };
 
-    // useEffect(() => {
-    //     const token = localStorage.getItem("token");
-    //     const role = localStorage.getItem("role");
+  //  <<< Website Validation
 
-    //     if (!token) {
-    //         router.push("/");
-    //         toast.error("Please Login First");
-    //     } else {
-    //         setRole(role);
-    //     }
-    // }, [router]);
+  const [formData, setFormData] = useState({
+    customer_type: "",
+    company_name: "",
+    customer_name: "",
+    email: "",
+    mobile: "",
+    industry: "",
+    website: "https://",
+    remarks: "",
+  });
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
-    // Website Validatation >>>
-    const websiteRef = useRef();
-    const [error, setError] = useState("");
+  const handleMobileChange = (value) => {
+    setFormData((prev) => ({ ...prev, mobile: value }));
+  };
 
-    const handleBlur = () => {
-        let value = formData.website;
+  const addGst = () => {
+    if (gstDetails.length >= 5) return;
 
-        // Ensure https:// is present
-        if (!value.startsWith("https://")) {
-            value = "https://" + value.replace(/^https?:\/\//, "");
-        }
+    setGstDetails([
+      ...gstDetails,
+      {
+        gst_type: "",
+        gst_number: "",
+        gst_state: "",
+      },
+    ]);
+  };
 
-        // Update formData
-        setFormData(prev => ({ ...prev, website: value }));
+  const removeGst = async (id) => {
+    if (gstDetails.length === 1) return;
 
-        // Validate domain
-        const domain = value.replace(/^https:\/\//, "");
-        const domainRegex = /^(www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/;
-        if (!domainRegex.test(domain)) {
-            setError("Invalid website (e.g., google.com or www.google.com)");
-        } else {
-            setError("");
-        }
-    };
+    try {
+      const token = localStorage.getItem("token");
 
+      await axios.delete(`${API_BASE}/api/customers/delete-gst/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    // Keep cursor at the end when focusing
-    const handleFocus = (e) => {
-        const el = websiteRef.current;
-        const length = el.value.length;
-        el.setSelectionRange(length, length);
-        console.log(e.target.value);
-    };
+      // Update UI only after successful delete completed
+      setGstDetails((prev) => prev.filter((gst) => gst.id !== id));
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to Remove GST");
+    }
+  };
 
-    //  <<< Website Validation
+  const updateGst = (id, field, value) => {
+    setGstDetails(
+      gstDetails.map((gst) =>
+        gst.id === id ? { ...gst, [field]: value } : gst,
+      ),
+    );
+  };
 
+  const saveGstDetails = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const customerId = localStorage.getItem("customer_edit_id");
 
-    const [formData, setFormData] = useState({
-        customer_type: "",
-        company_name: "",
-        customer_name: "",
-        email: "",
-        mobile: "",
-        industry: "",
-        website: "https://",
-        remarks: ""
-    });
+      await axios.put(
+        `${API_BASE}/api/customers/customer-gst/${customerId}`,
+        {
+          gst_details: gstDetails,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error("GST update failed");
+    }
+  };
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
-    };
+  // update data in customer_data table
 
-    const handleMobileChange = (value) => {
-        setFormData((prev) => ({ ...prev, mobile: value }));
-    };
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
 
+    if (!customerId) {
+      toast.error("Customer ID not found");
+      return;
+    }
 
-    const addGst = () => {
-        if (gstDetails.length >= 5) return;
+    try {
+      const token = localStorage.getItem("token");
 
-        setGstDetails([
-            ...gstDetails,
-            {
-                gst_type: "",
-                gst_number: "",
-                gst_state: ""
-            }
-        ]);
-    };
+      const payload = {
+        company_name: formData.company_name,
+        customer_type: formData.customer_type,
+        customer_name: formData.customer_name,
+        email: formData.email,
+        mobile: formData.mobile,
+        industry: formData.industry,
+        website: formData.website,
+        remarks: formData.remarks,
+      };
 
+      const res = await axios.put(
+        `${API_BASE}/api/customers/customer-data/${customerId}`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
-    const removeGst = async (id) => {
-        if (gstDetails.length === 1)
-            return;
+      toast.success(res.data.message || "Customer updated successfully");
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to update customer");
+    }
+  };
 
-        try {
-            const token = localStorage.getItem("token");
+  // Existing Data Render Into Form
+  useEffect(() => {
+    if (!customerId) return;
 
-            await axios.delete(`${API_BASE}/api/customers/delete-gst/${id}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+    const fetchCustomer = async () => {
+      try {
+        const token = localStorage.getItem("token");
 
-            // Update UI only after successful delete completed
-            setGstDetails((prev) => prev.filter((gst) => gst.id !== id));
-        } catch (error) {
-            console.error(error);
-            toast.error("Failed to Remove GST");
-        }
-    };
-
-
-    const updateGst = (id, field, value) => {
-        setGstDetails(
-            gstDetails.map((gst) =>
-                gst.id === id ? { ...gst, [field]: value } : gst
-            )
+        const res = await axios.get(
+          `${API_BASE}/api/customers/customer/${customerId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
         );
+
+        const { customer, gst_details } = res.data;
+
+        setFormData({
+          customer_type: customer.customer_type || "",
+          company_name: customer.company_id || "",
+          customer_name: customer.customer_name || "",
+          email: customer.email || "",
+          mobile: customer.mobile || "",
+          industry: customer.industry || "",
+          website: customer.website || "https://",
+          remarks: customer.remarks || "",
+        });
+
+        setGstDetails(
+          gst_details.map((gst) => ({
+            id: gst.id,
+            gst_type: gst.gst_type,
+            gst_number: gst.gst_number,
+            gst_state: gst.state,
+          })),
+        );
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load customer");
+      }
     };
 
+    fetchCustomer();
+  }, [customerId]);
 
-    const saveGstDetails = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const customerId = localStorage.getItem("customer_edit_id");
+  // Fetch active designation for contact and set into dropdown
 
-            await axios.put(`${API_BASE}/api/customers/customer-gst/${customerId}`,
-                {
-                    gst_details: gstDetails
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-            );
-
-        } catch (err) {
-            console.error(err);
-            toast.error("GST update failed");
-        }
+  useEffect(() => {
+    const fetchDesignations = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/api/contact/read`, {
+          params: { status: 1 },
+        });
+        setDesignations(res.data);
+      } catch (err) {
+        console.error("Failed to fetch designations:", err);
+      }
     };
 
+    fetchDesignations();
+  }, []);
 
+  // Fetching Active Industries
+  useEffect(() => {
+    const fetchIndustry = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/api/Industries/industries`, {
+          params: { status: 1 },
+        });
 
-    // update data in customer_data table
-
-    const handleSubmit = async (e) => {
-        if (e) e.preventDefault();
-
-        if (!customerId) {
-            toast.error("Customer ID not found");
-            return;
-        }
-
-        try {
-            const token = localStorage.getItem("token");
-
-            const payload = {
-                company_name: formData.company_name,
-                customer_type: formData.customer_type,
-                customer_name: formData.customer_name,
-                email: formData.email,
-                mobile: formData.mobile,
-                industry: formData.industry,
-                website: formData.website,
-                remarks: formData.remarks,
-            };
-
-            const res = await axios.put(`${API_BASE}/api/customers/customer-data/${customerId}`, payload,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            toast.success(res.data.message || "Customer updated successfully");
-
-        } catch (err) {
-            console.error(err);
-            toast.error(
-                err.response?.data?.message || "Failed to update customer"
-            );
-        }
+        // If your API wraps data like { data: [...] }
+        setIndustries(res.data.data || res.data);
+      } catch (err) {
+        console.error("Failed to fetch names:", err);
+        setIndustries([]); // fallback
+      }
     };
 
+    fetchIndustry();
+  }, []);
 
+  useEffect(() => {
+    const fetchCompanyName = async () => {
+      try {
+        const res = await axios.get(
+          `${API_BASE}/api/organizations/organization-name`,
+          {
+            params: { status: 1 },
+          },
+        );
 
-    // Existing Data Render Into Form
-    useEffect(() => {
-        if (!customerId) return;
+        // If your API wraps data like { data: [...] }
+        setCompanyname(res.data.data || res.data);
+      } catch (err) {
+        console.error("Failed to fetch company names:", err);
+        setCompanyname([]);
+      }
+    };
 
-        const fetchCustomer = async () => {
-            try {
-                const token = localStorage.getItem("token");
+    fetchCompanyName();
+  }, []);
 
-                const res = await axios.get(`${API_BASE}/api/customers/customer/${customerId}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
+  // edit address integration functions
 
-                const { customer, gst_details } = res.data;
+  const [addresses, setAddresses] = useState([]);
+  const [addressForm, setAddressForm] = useState({
+    address_type: "",
+    address: "",
+  });
+  const [editAddressId, setEditAddressId] = useState(null);
 
-                setFormData({
-                    customer_type: customer.customer_type || "",
-                    company_name: customer.company_id || "",
-                    customer_name: customer.customer_name || "",
-                    email: customer.email || "",
-                    mobile: customer.mobile || "",
-                    industry: customer.industry || "",
-                    website: customer.website || "https://",
-                    remarks: customer.remarks || "",
-                });
+  // Read Address Details
 
-                setGstDetails(
-                    gst_details.map(gst => ({
-                        id: gst.id,
-                        gst_type: gst.gst_type,
-                        gst_number: gst.gst_number,
-                        gst_state: gst.state
-                    }))
-                );
+  const fetchAddresses = async () => {
+    if (!customerId) return;
 
-            } catch (err) {
-                console.error(err);
-                toast.error("Failed to load customer");
-            }
-        };
+    try {
+      const token = localStorage.getItem("token");
 
-        fetchCustomer();
-    }, [customerId]);
+      const res = await axios.get(
+        `${API_BASE}/api/customers/customer-address/${customerId}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
 
+      setAddresses(res.data);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load addresses");
+    }
+  };
 
+  useEffect(() => {
+    fetchAddresses();
+    fetchContacts();
+  }, [customerId]);
 
+  // Handle Address Form Input
+  const handleAddressChange = (e) => {
+    const { name, value } = e.target;
+    setAddressForm((prev) => ({ ...prev, [name]: value }));
+  };
 
-    // Fetch active designation for contact and set into dropdown
+  // saveAddress Function for insert and update
+  const saveAddress = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-    useEffect(() => {
-        const fetchDesignations = async () => {
-            try {
-                const res = await axios.get(`${API_BASE}/api/contact/read`, {
-                    params: { status: 1 }
-                });
-                setDesignations(res.data);
-            } catch (err) {
-                console.error("Failed to fetch designations:", err);
-            }
-        };
+      if (editAddressId) {
+        // UPDATE
+        await axios.put(
+          `${API_BASE}/api/customers/customer-address/${editAddressId}`,
+          addressForm,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
 
-        fetchDesignations();
-    }, []);
+        toast.success("Address updated");
+      } else {
+        // INSERT
+        await axios.post(
+          `${API_BASE}/api/customers/customer-address`,
+          {
+            customer_id: customerId,
+            ...addressForm,
+          },
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
 
+        toast.success("Address added");
+      }
 
-    // Fetching Active Industries
-    useEffect(() => {
-        const fetchIndustry = async () => {
-            try {
-                const res = await axios.get(`${API_BASE}/api/Industries/industries`, {
-                    params: { status: 1 },
-                });
+      setShowAddressModal(false);
+      setAddressForm({ address_type: "", address: "" });
+      setEditAddressId(null);
 
-                // If your API wraps data like { data: [...] }
-                setIndustries(res.data.data || res.data);
-            } catch (err) {
-                console.error("Failed to fetch names:", err);
-                setIndustries([]); // fallback
-            }
-        };
+      // reload list
+      fetchAddresses();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save address");
+    }
+  };
 
-        fetchIndustry();
-    }, []);
-
-    useEffect(() => {
-        const fetchCompanyName = async () => {
-            try {
-                const res = await axios.get(`${API_BASE}/api/organizations/organization-name`, {
-                    params: { status: 1 },
-                });
-
-                // If your API wraps data like { data: [...] }
-                setCompanyname(res.data.data || res.data);
-            } catch (err) {
-                console.error("Failed to fetch company names:", err);
-                setCompanyname([]);
-            }
-        };
-
-        fetchCompanyName();
-    }, []);
-
-
-    // edit address integration functions
-
-    const [addresses, setAddresses] = useState([]);
-    const [addressForm, setAddressForm] = useState({
-        address_type: "",
-        address: "",
+  // Edit Address Data Rendering and collect id of row
+  const editAddress = (item) => {
+    setEditAddressId(item.id);
+    setAddressForm({
+      address_type: item.address_type,
+      address: item.address,
     });
-    const [editAddressId, setEditAddressId] = useState(null);
+    setShowAddressModal(true);
+  };
 
+  // Delete Address Details
+  const deleteAddress = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
 
-    // Read Address Details
+      await axios.delete(`${API_BASE}/api/customers/customer-address/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    const fetchAddresses = async () => {
-        if (!customerId) return;
+      setAddresses((prev) => prev.filter((addr) => addr.id !== id));
+      toast.success("Address deleted");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete address");
+    }
+  };
 
-        try {
-            const token = localStorage.getItem("token");
+  // Reset While we can cancel or close Address Model
 
-            const res = await axios.get(
-                `${API_BASE}/api/customers/customer-address/${customerId}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+  const closeAddressModal = () => {
+    setShowAddressModal(false);
+    setEditAddressId(null);
+    setAddressForm({
+      address_type: "",
+      address: "",
+    });
+  };
 
-            setAddresses(res.data);
-        } catch (err) {
-            console.error(err);
-            toast.error("Failed to load addresses");
-        }
-    };
+  // edit contacts integration functions
+  const [contacts, setContacts] = useState([]);
+  const [contactForm, setContactForm] = useState({
+    contact_person: "",
+    contact_number: "",
+    email: "",
+    contact_designation: "",
+  });
+  const [editContactId, setEditContactId] = useState(null);
 
-    useEffect(() => {
-        fetchAddresses();
-        fetchContacts();
-    }, [customerId]);
+  // read api for fetch contacts
 
+  const fetchContacts = async () => {
+    if (!customerId) return;
 
-    // Handle Address Form Input
-    const handleAddressChange = (e) => {
-        const { name, value } = e.target;
-        setAddressForm(prev => ({ ...prev, [name]: value }));
-    };
+    try {
+      const token = localStorage.getItem("token");
 
+      const res = await axios.get(
+        `${API_BASE}/api/customers/customer-contacts/${customerId}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
 
-    // saveAddress Function for insert and update
-    const saveAddress = async () => {
-        try {
-            const token = localStorage.getItem("token");
+      setContacts(res.data.data);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load contacts");
+    }
+  };
 
-            if (editAddressId) {
-                // UPDATE
-                await axios.put(`${API_BASE}/api/customers/customer-address/${editAddressId}`, addressForm,
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
+  // Handle contacts Form Input
 
-                toast.success("Address updated");
-            } else {
-                // INSERT
-                await axios.post(`${API_BASE}/api/customers/customer-address`,
-                    {
-                        customer_id: customerId,
-                        ...addressForm,
-                    },
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
+  const handleContactChange = (e) => {
+    const { name, value } = e.target;
+    setContactForm((prev) => ({ ...prev, [name]: value }));
+  };
 
-                toast.success("Address added");
-            }
+  // Save contacts for insert and update
 
-            setShowAddressModal(false);
-            setAddressForm({ address_type: "", address: "" });
-            setEditAddressId(null);
+  const saveContact = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-            // reload list
-            fetchAddresses();
+      if (editContactId) {
+        // UPDATE
+        await axios.put(
+          `${API_BASE}/api/customers/customer-contacts/${editContactId}`,
+          {
+            company_name: formData.company_name,
+            customer_name: formData.customer_name,
+            ...contactForm,
+          },
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
 
-        } catch (err) {
-            console.error(err);
-            toast.error("Failed to save address");
-        }
-    };
+        toast.success("Contact updated");
+      } else {
+        // INSERT
+        await axios.post(
+          `${API_BASE}/api/customers/customer-contacts`,
+          {
+            customer_id: customerId,
+            company_name: formData.company_name,
+            customer_name: formData.customer_name,
+            ...contactForm,
+          },
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
 
-    // Edit Address Data Rendering and collect id of row
-    const editAddress = (item) => {
-        setEditAddressId(item.id);
-        setAddressForm({
-            address_type: item.address_type,
-            address: item.address,
-        });
-        setShowAddressModal(true);
-    };
+        toast.success("Contact added");
+      }
 
-    // Delete Address Details
-    const deleteAddress = async (id) => {
-        try {
-            const token = localStorage.getItem("token");
-
-            await axios.delete(`${API_BASE}/api/customers/customer-address/${id}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            setAddresses(prev => prev.filter(addr => addr.id !== id));
-            toast.success("Address deleted");
-        } catch (err) {
-            console.error(err);
-            toast.error("Failed to delete address");
-        }
-    };
-
-    // Reset While we can cancel or close Address Model
-
-    const closeAddressModal = () => {
-        setShowAddressModal(false);
-        setEditAddressId(null);
-        setAddressForm({
-            address_type: "",
-            address: ""
-        });
-    };
-
-
-
-
-    // edit contacts integration functions
-    const [contacts, setContacts] = useState([]);
-    const [contactForm, setContactForm] = useState({
+      setShowContactsModal(false);
+      setContactForm({
         contact_person: "",
         contact_number: "",
         email: "",
-        contact_designation: ""
+        contact_designation: "",
+      });
+      setEditContactId(null);
+
+      fetchContacts();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save contact");
+    }
+  };
+
+  // Edit contacts Data Rendering and collect id of row
+
+  const editContact = (item) => {
+    setEditContactId(item.id);
+    setContactForm({
+      contact_person: item.contact_person,
+      contact_number: item.contact_number,
+      email: item.email,
+      contact_designation: item.contact_designation,
     });
-    const [editContactId, setEditContactId] = useState(null);
+    setShowContactsModal(true);
+  };
 
+  // Delete contacts api integration
 
-    // read api for fetch contacts
+  const deleteContact = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
 
-    const fetchContacts = async () => {
-        if (!customerId) return;
+      await axios.delete(`${API_BASE}/api/customers/customer-contacts/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-        try {
-            const token = localStorage.getItem("token");
+      setContacts((prev) => prev.filter((contact) => contact.id !== id));
+      toast.success("Contact deleted");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete contact");
+    }
+  };
+  return (
+    <>
+      <Header />
+      <div className="min-h-screen bg-gray-50">
+        {/* Breadcrumb Header */}
+        <div className="bg-white border-b border-gray-200 px-6 py-3">
+          <div className="flex items-center gap-2 text-sm">
+            <Link
+              href="/dashboard"
+              className="text-gray-400 hover:text-orange-500 transition-colors"
+            >
+              <i className="bi bi-house text-base"></i>
+            </Link>
+            <i className="bi bi-chevron-right text-gray-300 text-xs"></i>
+            <Link
+              href="/customer-list"
+              className="text-gray-500 hover:text-orange-500 transition-colors"
+            >
+              Customer List
+            </Link>
+            <i className="bi bi-chevron-right text-gray-300 text-xs"></i>
+            <span className="text-gray-800 font-medium">Update Customer</span>
+            {formData.customer_name && (
+              <span className="text-orange-500 font-semibold">
+                — {formData.customer_name}
+              </span>
+            )}
+          </div>
+        </div>
 
-            const res = await axios.get(`${API_BASE}/api/customers/customer-contacts/${customerId}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+        <div className="max-w-6xl mx-auto px-6 py-5 pb-24">
+          {/* Tabs */}
+          <div className="flex gap-1 mb-6 border-b border-gray-200">
+            {[
+              {
+                key: "update-customer",
+                label: "Update Customer",
+                icon: "bi-person",
+              },
+              {
+                key: "address-details",
+                label: "Address Details",
+                icon: "bi-geo-alt",
+              },
+              {
+                key: "contact-details",
+                label: "Contact Details",
+                icon: "bi-telephone",
+              },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-all border-b-2 -mb-px hover:cursor-pointer ${
+                  activeTab === tab.key
+                    ? "text-orange-500 border-orange-500"
+                    : "text-gray-500 border-transparent hover:text-gray-700"
+                }`}
+              >
+                <i className={`bi ${tab.icon}`}></i>
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-            setContacts(res.data.data);
-        } catch (err) {
-            console.error(err);
-            toast.error("Failed to load contacts");
-        }
-    };
-
-
-    // Handle contacts Form Input
-
-    const handleContactChange = (e) => {
-        const { name, value } = e.target;
-        setContactForm(prev => ({ ...prev, [name]: value }));
-    };
-
-
-    // Save contacts for insert and update 
-
-    const saveContact = async () => {
-        try {
-            const token = localStorage.getItem("token");
-
-            if (editContactId) {
-                // UPDATE
-                await axios.put(`${API_BASE}/api/customers/customer-contacts/${editContactId}`,
-                    {
-                        company_name: formData.company_name,
-                        customer_name: formData.customer_name,
-                        ...contactForm
-                    },
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-
-                toast.success("Contact updated");
-            } else {
-                // INSERT
-                await axios.post(`${API_BASE}/api/customers/customer-contacts`,
-                    {
-                        customer_id: customerId,
-                        company_name: formData.company_name,
-                        customer_name: formData.customer_name,
-                        ...contactForm
-                    },
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-
-                toast.success("Contact added");
-            }
-
-            setShowContactsModal(false);
-            setContactForm({
-                contact_person: "",
-                contact_number: "",
-                email: "",
-                contact_designation: ""
-            });
-            setEditContactId(null);
-
-            fetchContacts();
-
-        } catch (err) {
-            console.error(err);
-            toast.error("Failed to save contact");
-        }
-    };
-
-
-    // Edit contacts Data Rendering and collect id of row
-
-    const editContact = (item) => {
-        setEditContactId(item.id);
-        setContactForm({
-            contact_person: item.contact_person,
-            contact_number: item.contact_number,
-            email: item.email,
-            contact_designation: item.contact_designation
-        });
-        setShowContactsModal(true);
-    };
-
-
-    // Delete contacts api integration
-
-    const deleteContact = async (id) => {
-        try {
-            const token = localStorage.getItem("token");
-
-            await axios.delete(`${API_BASE}/api/customers/customer-contacts/${id}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            setContacts(prev => prev.filter(contact => contact.id !== id));
-            toast.success("Contact deleted");
-        } catch (err) {
-            console.error(err);
-            toast.error("Failed to delete contact");
-        }
-    };
-
-
-    return (
-        <>
-            <Header />
-            <div className=" bg-gray-100 ">
-
-                {/* Header */}
-                <div className="bg-white w-full max-w-8xl rounded-2xl shadow-lg p-2 mt-1 mb-2">
-                    <div className=" my-1.5">
-                        <p><Link href="/dashboard" className="mx-3 text-xl text-gray-400 hover:text-indigo-600 "><i className="bi bi-house"></i></Link>
-                            <i className="bi bi-chevron-right"></i>
-                            <Link href="/customer-list" className="mx-3 text-md text-gray-700 hover:text-indigo-600">Customer List</Link>
-                            <i className="bi bi-chevron-right"></i>
-                            <Link href="/customer" className="mx-3 text-md text-gray-700 hover:text-indigo-600">Update Customer :</Link>
-                            {formData.customer_name}
-                        </p>
-                    </div>
+          {/* ── UPDATE CUSTOMER TAB ── */}
+          {activeTab === "update-customer" && (
+            <form className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5">
+              {/* Customer Type */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                  Customer Type
+                </label>
+                <div className="flex gap-4">
+                  {["Individual", "Business"].map((type) => (
+                    <label
+                      key={type}
+                      className={`flex items-center gap-2.5 px-4 py-2.5 rounded-lg border-2 cursor-pointer transition-all ${
+                        formData.customer_type === type
+                          ? "border-orange-400 bg-orange-50 text-orange-600"
+                          : "border-gray-200 text-gray-600 hover:border-gray-300"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="customer_type"
+                        value={type}
+                        checked={formData.customer_type === type}
+                        onChange={handleChange}
+                        className="hidden"
+                      />
+                      <div
+                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                          formData.customer_type === type
+                            ? "border-orange-500"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        {formData.customer_type === type && (
+                          <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                        )}
+                      </div>
+                      <span className="text-sm font-medium">{type}</span>
+                    </label>
+                  ))}
                 </div>
-                <form className="p-2 w-7xl mx-auto" >
-                    {/* Tab Header */}
-                    <div className="flex mb-4">
-                        <button type="button" onClick={() => setActiveTab("update-customer")} className={`px-4 py-2 font-medium hover:cursor-pointer ${activeTab === "update-customer" ? "text-blue-900 border-b-2 border-blue-600" : "text-gray-600"}`}>
-                            Update Customer
-                        </button>
-                        <button type="button" onClick={() => setActiveTab("address-details")} className={`px-4 py-2 font-medium hover:cursor-pointer ${activeTab === "address-details" ? "text-blue-900 border-b-2 border-blue-600" : "text-gray-600"}`}>
-                            Address Details
-                        </button>
-                        <button type="button" onClick={() => setActiveTab("contact-details")} className={`px-4 py-2 font-medium hover:cursor-pointer ${activeTab === "contact-details" ? "text-blue-900 border-b-2 border-blue-600" : "text-gray-600"}`}>
-                            Contact Details
-                        </button>
-                    </div>
+              </div>
 
-                    {/* Personal Information Section */}
-                    {activeTab === "update-customer" && (
-                        <div className="bg-white shadow rounded-2xl p-6 max-h-[70vh] overflow-y-auto">
-                            {/* Customer Type */}
-                            <div className="mb-4 flex gap-4">
-                                <label className="font-semibold">Customer Type</label>
-                                <div className="flex gap-3">
-                                    <label className="flex items-center gap-2">
-                                        <input type="radio" name="customer_type" value="Individual" checked={formData.customer_type === "Individual"} onChange={handleChange} />
-                                        Individual
-                                    </label>
-                                    <label className="flex items-center gap-2">
-                                        <input type="radio" name="customer_type" value="Business" checked={formData.customer_type === "Business"} onChange={handleChange} />
-                                        Business
-                                    </label>
-                                </div>
-                            </div>
+              {/* Row 1: Company Name, Customer Name, Mobile No */}
+              <div className="grid grid-cols-3 gap-5">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Company Name <span className="text-red-400">*</span>
+                  </label>
+                  <select
+                    name="company_name"
+                    value={formData.company_name}
+                    onChange={handleChange}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all"
+                  >
+                    <option value="">Select Company</option>
+                    {companyname.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.organization_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Customer Name <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="customer_name"
+                    placeholder="Enter customer name"
+                    value={formData.customer_name}
+                    onChange={handleChange}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Mobile No.
+                  </label>
+                  <PhoneInput
+                    country={"in"}
+                    value={formData.mobile}
+                    onChange={handleMobileChange}
+                    inputStyle={{
+                      width: "100%",
+                      height: "42px",
+                      borderRadius: "0.5rem",
+                      border: "1px solid #e5e7eb",
+                      backgroundColor: "#f9fafb",
+                      fontSize: "14px",
+                      color: "#374151",
+                    }}
+                    buttonStyle={{
+                      borderTopLeftRadius: "0.5rem",
+                      borderBottomLeftRadius: "0.5rem",
+                      border: "1px solid #e5e7eb",
+                      backgroundColor: "#f9fafb",
+                    }}
+                  />
+                </div>
+              </div>
 
-                            {/* Form Fields */}
-                            <div className="grid grid-cols-3 gap-4 mb-4">
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Company Name *</label>
-                                    <input name="company_name" className="w-full border rounded p-2" placeholder="Enter Company Name" value={formData.company_name} onChange={handleChange} />
-                                        {/* <option value="">Select Company</option>
-                                        {companyname.map((item) => (
-                                            <option key={item.id} value={item.id}>
-                                                {item.organization_name}
-                                            </option>
-                                        ))} */}
+              {/* Row 2: Email, Industry */}
+              <div className="grid grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Enter email address"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Industry <span className="text-red-400">*</span>
+                  </label>
+                  <select
+                    name="industry"
+                    value={formData.industry}
+                    onChange={handleChange}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all"
+                  >
+                    <option value="">Select Industry</option>
+                    {industries.map((item) => (
+                      <option key={item.name} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
+              {/* Row 3: Website, Remarks */}
+              <div className="grid grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Website
+                  </label>
+                  <input
+                    type="text"
+                    name="website"
+                    ref={websiteRef}
+                    onBlur={handleBlur}
+                    value={formData.website}
+                    onChange={handleChange}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all"
+                  />
+                  {error && (
+                    <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
+                      <i className="bi bi-exclamation-circle"></i> {error}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Remarks
+                  </label>
+                  <textarea
+                    name="remarks"
+                    placeholder="Enter remarks"
+                    value={formData.remarks}
+                    onChange={handleChange}
+                    rows="3"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all resize-none"
+                  ></textarea>
+                </div>
+              </div>
 
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">
-                                        Customer Name *
-                                    </label>
-                                    <input type="text" name="customer_name" placeholder="Enter customer name" value={formData.customer_name} onChange={handleChange} className="w-full border rounded p-2" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Mobile No.</label>
-                                    <PhoneInput
-                                        country={"in"}
-                                        value={formData.mobile}
-                                        onChange={handleMobileChange}
-                                        inputStyle={{
-                                            width: "100%",
-                                            height: "38px",
-                                            borderRadius: "0.375rem",
-                                            border: "1px solid #d1d5db",
-                                        }}
-                                        buttonStyle={{
-                                            borderTopLeftRadius: "0.375rem",
-                                            borderBottomLeftRadius: "0.375rem",
-                                        }}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Email</label>
-                                    <input type="email" name="email" placeholder="Enter email address" value={formData.email} onChange={handleChange} className="w-full border rounded p-2" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">Industry *</label>
-                                    <select name="industry" className="w-full border rounded p-2" value={formData.industry} onChange={handleChange}>
-                                        <option value="">Select Industry</option>
-                                        {industries.map((item) => (
-                                            <option key={item.name} value={item.id}>
-                                                {item.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
+              {/* GST Details */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    GST Details
+                  </label>
+                  {gstDetails.length < 5 && (
+                    <button
+                      type="button"
+                      onClick={addGst}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-orange-500 hover:text-orange-600 hover:cursor-pointer transition-colors border border-orange-200 hover:border-orange-300 bg-orange-50 px-3 py-1.5 rounded-lg"
+                    >
+                      <i className="bi bi-plus-lg"></i> Add GST
+                    </button>
+                  )}
+                </div>
 
-                            {/* Additional Details */}
-                            <div className="mb-6">
-                                <h3 className="text-blue-900 font-medium mb-2">Add more details</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">Website</label>
-                                        <input type="text" name="website" ref={websiteRef} onBlur={handleBlur} value={formData.website} onChange={handleChange} className="w-full border rounded p-2" />
-                                        {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1">Remarks</label>
-                                        <textarea name="remarks" placeholder="Enter remarks" value={formData.remarks} onChange={handleChange} className="w-full border rounded p-2"></textarea>
-                                    </div>
-                                </div>
-                            </div>
-
-
-                            <div className="mb-6">
-
-                                {gstDetails.map((gst, index) => (
-                                    <div key={gst.id || index} className="grid grid-cols-12 gap-4 items-end mb-2">
-                                        {/* GST TYPE */}
-                                        <div className="col-span-4">
-                                            <label className="block text-sm font-medium mb-1">
-                                                GST Type
-                                            </label>
-                                            <select className="w-full border rounded px-3 py-2" value={gst.gst_type}
-                                                onChange={(e) =>
-                                                    updateGst(gst.id, "gst_type", e.target.value)
-                                                }>
-                                                <option value="">Select GST Type</option>
-                                                <option>Registered Regular</option>
-                                                <option>Registered Composite</option>
-                                                <option>Unregistered / Consumer</option>
-                                            </select>
-                                        </div>
-
-                                        {/* GST NUMBER */}
-                                        <div className="col-span-4">
-                                            <label className="block text-sm font-medium mb-1">
-                                                GST Number
-                                            </label>
-                                            <input type="text" className="w-full border rounded px-3 py-2" value={gst.gst_number}
-                                                onChange={(e) => updateGst(gst.id, "gst_number", e.target.value)} />
-                                        </div>
-
-                                        {/* STATE */}
-                                        <div className="col-span-3">
-                                            <label className="block text-sm font-medium mb-1">
-                                                State
-                                            </label>
-                                            <input type="text" className="w-full border rounded px-3 py-2" placeholder="Enter State" value={gst.gst_state}
-                                                onChange={(e) =>
-                                                    updateGst(gst.id, "gst_state", e.target.value)} />
-                                        </div>
-
-
-                                        {/* PLUS / REMOVE */}
-                                        <div className="col-span-1 ">
-                                            {index === gstDetails.length - 1 && gstDetails.length < 5 ? (
-                                                <button type="button" onClick={addGst} className="border rounded px-3 py-1.5 text-xl hover:cursor-pointer">
-                                                    <i className="bi bi-plus-lg"></i>
-                                                </button>
-                                            ) : (
-                                                gstDetails.length > 1 && (
-                                                    <button type="button" onClick={() => removeGst(gst.id)} className="border rounded px-3 py-1.5 text-xl hover:cursor-pointer">
-                                                        <i className="bi bi-x-lg text-red-600"></i>
-                                                    </button>
-                                                )
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-
-                                {/* ADD MORE GST */}
-                                {gstDetails.length < 5 && (
-                                    <button type="button" onClick={addGst} className="text-blue-900 font-medium mb-4 hover:underline">
-                                        Add more GST?
-                                    </button>
-                                )}
-                            </div>
-
-
+                {gstDetails.length === 0 ? (
+                  <div className="text-center py-6 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                    <i className="bi bi-receipt text-3xl mb-2 block"></i>
+                    <p className="text-sm">No GST details added</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {gstDetails.map((gst, index) => (
+                      <div
+                        key={gst.id || index}
+                        className="grid grid-cols-12 gap-4 items-end p-4 bg-gray-50 rounded-xl border border-gray-100"
+                      >
+                        <div className="col-span-4">
+                          {index === 0 && (
+                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                              GST Type
+                            </label>
+                          )}
+                          <select
+                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
+                            value={gst.gst_type}
+                            onChange={(e) =>
+                              updateGst(gst.id, "gst_type", e.target.value)
+                            }
+                          >
+                            <option value="">Select GST Type</option>
+                            <option>Registered Regular</option>
+                            <option>Registered Composite</option>
+                            <option>Unregistered / Consumer</option>
+                          </select>
                         </div>
-                    )}
-
-
-
-                    {/* Address Details Section */}
-                    {activeTab === "address-details" && (
-                        <div className="bg-white shadow rounded-2xl p-6 max-h-[70vh] overflow-y-auto">
-                            {/* HEADER */}
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-lg font-semibold text-black mb-3">Address Listing</h2>
-
-                                <button type="button" onClick={() => setShowAddressModal(true)} className="flex items-center gap-2 bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-950 hover:cursor-pointer">
-                                    <i className="bi bi-plus-lg"></i>
-                                    ADD ADDRESS
-                                </button>
-                            </div>
-
-                            {/* TABLE */}
-                            <div className="rounded-xl overflow-hidden">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left w-16">#</th>
-                                            <th className="px-4 py-3 text-left">Address Type</th>
-                                            <th className="px-4 py-3 text-left">Address</th>
-                                            <th className="px-4 py-3 text-left w-32">Action</th>
-                                        </tr>
-                                    </thead>
-
-                                    <tbody>
-                                        {addresses.map((item, index) => (
-                                            <tr key={item.id} className="border-t border-gray-200 hover:bg-gray-50">
-                                                <td className="px-4 py-3">{index + 1}</td>
-                                                <td className="px-4 py-3">{item.address_type}</td>
-                                                <td className="px-4 py-3">{item.address}</td>
-                                                <td className="px-4 py-3 flex gap-3">
-                                                    <button type="button" onClick={() => editAddress(item)} className="text-gray-500 hover:text-blue-900 hover:cursor-pointer">
-                                                        <i className="bi bi-pencil-square text-lg"></i>
-                                                    </button>
-                                                    <button type="button" onClick={() => deleteAddress(item.id)} className="text-gray-500 hover:text-red-600 hover:cursor-pointer">
-                                                        <i className="bi bi-trash3 text-lg"></i>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* MODAL (SAME COMPONENT) */}
-                            {showaddressModal && (
-                                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-                                    <div className="bg-white rounded-xl w-full max-w-lg p-6">
-                                        {/* MODAL HEADER */}
-                                        <div className="flex justify-between items-center mb-5 border-b text-gray-400 ">
-                                            <h3 className="text-lg font-semibold text-black">
-                                                {editAddressId ? "Edit Address" : "Add Address"}
-                                            </h3>
-                                            <button type="button" onClick={() => closeAddressModal()} className="text-2xl text-gray-500 hover:text-red-400 mb-5 hover:cursor-pointer">
-                                                <i className="bi bi-x-lg"></i>
-                                            </button>
-                                        </div>
-
-                                        {/* FORM */}
-                                        <div className="space-y-4 text-gray-600">
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1">
-                                                    Address Type *
-                                                </label>
-                                                <select name="address_type" value={addressForm.address_type} onChange={handleAddressChange} className="w-full border rounded px-3 py-2">
-                                                    <option>Select Address Type</option>
-                                                    <option>Billing</option>
-                                                    <option>Shipping</option>
-                                                    <option>Corporate</option>
-                                                    <option>Warehouse</option>
-                                                </select>
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1">
-                                                    Address
-                                                </label>
-                                                <textarea name="address" value={addressForm.address} onChange={handleAddressChange} className="w-full border rounded px-3 py-2" rows="3" placeholder="Enter address" />
-                                            </div>
-                                        </div>
-
-                                        {/* MODAL FOOTER */}
-                                        <div className="flex justify-end gap-3 mt-6">
-                                            <button type="button" onClick={() => closeAddressModal()} className="px-4 py-2 border hover:bg-gray-200 rounded-lg hover:cursor-pointer">
-                                                Cancel
-                                            </button>
-                                            <button type="button" onClick={saveAddress} className="px-4 py-2 bg-blue-900 hover:bg-blue-950 text-white rounded-lg hover:cursor-pointer">
-                                                Save
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                        <div className="col-span-4">
+                          {index === 0 && (
+                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                              GST Number
+                            </label>
+                          )}
+                          <input
+                            type="text"
+                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
+                            placeholder="Enter GST number"
+                            value={gst.gst_number}
+                            onChange={(e) =>
+                              updateGst(gst.id, "gst_number", e.target.value)
+                            }
+                          />
                         </div>
-                    )}
-
-
-
-                    {/* contact Details Section */}
-                    {activeTab === "contact-details" && (
-                        <div className="bg-white shadow rounded-2xl p-6 max-h-[70vh] overflow-y-auto">
-                            {/* HEADER */}
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-lg font-semibold">Contacts Listing</h2>
-
-                                <button type="button" onClick={() => setShowContactsModal(true)} className="flex items-center gap-2 bg-blue-900 text-white px-4 py-2 rounded hover:bg-blue-950 hover:cursor-pointer">
-                                    <i className="bi bi-plus-lg"></i>
-                                    ADD CONTACTS
-                                </button>
-                            </div>
-
-                            {/* TABLE */}
-                            <div className="rounded-xl overflow-hidden">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-2 py-3 text-left">#</th>
-                                            <th className="px-4 py-3 text-left">Company Name</th>
-                                            <th className="px-4 py-3 text-left">Customer Name</th>
-                                            <th className="px-4 py-3 text-left ">Contact Person</th>
-                                            <th className="px-4 py-3 text-left ">Contact Number</th>
-                                            <th className="px-4 py-3 text-left ">Email</th>
-                                            <th className="px-4 py-3 text-left ">Contact Designation</th>
-                                            <th className="px-4 py-3 text-left ">Action</th>
-                                        </tr>
-                                    </thead>
-
-                                    <tbody>
-                                        {contacts.map((item, index) => (
-                                            <tr key={item.id} className="border-t border-gray-200 hover:bg-gray-50">
-                                                <td className="px-4 py-3">{index + 1}</td>
-                                                <td className="px-4 py-3">{item.company_name}</td>
-                                                <td className="px-4 py-3">{item.customer_name}</td>
-                                                <td className="px-4 py-3">{item.contact_person}</td>
-                                                <td className="px-4 py-3">{item.contact_number}</td>
-                                                <td className="px-4 py-3">{item.email}</td>
-                                                <td className="px-4 py-3">{item.designation_name}</td>
-                                                <td className="px-4 py-3 flex gap-3">
-                                                    <button type="button" onClick={() => editContact(item)} className="text-gray-500 hover:text-blue-900 cursor-pointer">
-                                                        <i className="bi bi-pencil-square text-lg"></i>
-                                                    </button>
-                                                    <button type="button" onClick={() => deleteContact(item.id)} className="text-gray-500 hover:text-red-600 cursor-pointer">
-                                                        <i className="bi bi-trash3 text-lg"></i>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* MODAL (SAME COMPONENT) */}
-                            {showcontactsModal && (
-                                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-                                    <div className="bg-white rounded-xl w-full max-w-lg p-5">
-                                        {/* MODAL HEADER */}
-                                        <div className="flex justify-between items-center mb-5 border-b text-gray-400 ">
-                                            <h3 className="text-lg font-semibold text-black mb-3">Add Contacts</h3>
-                                            <button type="button" onClick={() => setShowContactsModal(false)} className="text-2xl text-gray-500 hover:text-red-400 mb-5 hover:cursor-pointer">
-                                                <i className="bi bi-x-lg"></i>
-                                            </button>
-                                        </div>
-
-                                        {/* FORM */}
-                                        <div className="space-y-4 text-gray-600">
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1">
-                                                    Contact Person *
-                                                </label>
-                                                <input type="text" name="contact_person" value={contactForm.contact_person} onChange={handleContactChange} className="w-full border rounded px-3 py-2" />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1">
-                                                    Contact Number *
-                                                </label>
-                                                <input type="text" name="contact_number" value={contactForm.contact_number} onChange={handleContactChange} className="w-full border rounded px-3 py-2" />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1">
-                                                    Email
-                                                </label>
-                                                <input type="text" name="email" value={contactForm.email} onChange={handleContactChange} className="w-full border rounded px-3 py-2" />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1">
-                                                    Contact Designation *
-                                                </label>
-                                                <select name="contact_designation" value={contactForm.contact_designation} onChange={handleContactChange} className="w-full border rounded px-3 py-2" >
-                                                    <option value="">Select Designation</option>
-                                                    {designations.map(d => (
-                                                        <option key={d.id} value={d.id}>
-                                                            {d.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        {/* MODAL FOOTER */}
-                                        <div className="flex justify-end gap-3 mt-6 mb-3">
-                                            <button type="button" onClick={() => setShowContactsModal(false)} className="px-4 py-2 border rounded hover:cursor-pointer">
-                                                Cancel
-                                            </button>
-                                            <button type="button" onClick={saveContact} className="px-4 py-2 bg-blue-900 text-white rounded">
-                                                Save
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                        <div className="col-span-3">
+                          {index === 0 && (
+                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                              State
+                            </label>
+                          )}
+                          <input
+                            type="text"
+                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
+                            placeholder="Enter state"
+                            value={gst.gst_state}
+                            onChange={(e) =>
+                              updateGst(gst.id, "gst_state", e.target.value)
+                            }
+                          />
                         </div>
-                    )}
-
-                </form>
-            </div>
-
-            <div className="fixed bottom-0 left-0 w-full flex justify-end gap-3 bg-white p-3 z-50">
-                <button type="button"
-                    onClick={async () => {
-                        await handleSubmit();
-                        await saveGstDetails();
-                    }} className="border px-4 py-1 rounded bg-blue-900 hover:bg-blue-950 text-white hover:cursor-pointer">Save</button>
-
-                <button type="button" onClick={() => { router.push('/customer-list') }}
-                    className="border px-4 py-1 hover:bg-gray-200 rounded hover:cursor-pointer">Cancel
+                        <div className="col-span-1 flex justify-center">
+                          {gstDetails.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeGst(gst.id)}
+                              className="w-9 h-9 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center text-red-400 hover:bg-red-100 hover:text-red-600 hover:cursor-pointer transition-all"
+                            >
+                              <i className="bi bi-trash3 text-sm"></i>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* Form Buttons */}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await handleSubmit();
+                    await saveGstDetails();
+                  }}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg hover:cursor-pointer transition-all shadow-sm"
+                >
+                  <i className="bi bi-check2"></i> Save Changes
                 </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => router.push("/customer-list")}
+                  className="px-6 py-2.5 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 hover:cursor-pointer transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
 
-        </>
-    );
+          {/* ── ADDRESS DETAILS TAB ── */}
+          {activeTab === "address-details" && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
+                    <i className="bi bi-geo-alt text-orange-500"></i>
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-semibold text-gray-800">
+                      Address Listing
+                    </h2>
+                    <p className="text-xs text-gray-400">
+                      {addresses.length} address(es) added
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddressModal(true)}
+                  className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:cursor-pointer transition-all shadow-sm"
+                >
+                  <i className="bi bi-plus-lg"></i> Add Address
+                </button>
+              </div>
+
+              <div className="overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider w-16">
+                        #
+                      </th>
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider w-48">
+                        Type
+                      </th>
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Address
+                      </th>
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider w-28">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {addresses.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan="4"
+                          className="text-center py-10 text-gray-400"
+                        >
+                          <i className="bi bi-geo-alt text-3xl block mb-2"></i>
+                          No addresses added yet
+                        </td>
+                      </tr>
+                    ) : (
+                      addresses.map((item, index) => (
+                        <tr
+                          key={item.id}
+                          className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="px-6 py-4 text-gray-400 text-xs font-medium">
+                            {index + 1}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-50 text-blue-600 text-xs font-semibold">
+                              {item.address_type}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-gray-600">
+                            {item.address}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => editAddress(item)}
+                                className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-400 hover:bg-blue-100 hover:text-blue-600 hover:cursor-pointer transition-all"
+                              >
+                                <i className="bi bi-pencil-square text-sm"></i>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteAddress(item.id)}
+                                className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-100 hover:text-red-600 hover:cursor-pointer transition-all"
+                              >
+                                <i className="bi bi-trash3 text-sm"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Address Modal */}
+              {showaddressModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+                    <div className="flex items-center justify-between px-6 py-4 bg-orange-500">
+                      <div className="flex items-center gap-2">
+                        <i className="bi bi-geo-alt text-white"></i>
+                        <h3 className="text-white font-semibold">
+                          {editAddressId ? "Edit Address" : "Add Address"}
+                        </h3>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={closeAddressModal}
+                        className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 hover:cursor-pointer transition-all"
+                      >
+                        <i className="bi bi-x-lg text-sm"></i>
+                      </button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                          Address Type <span className="text-red-400">*</span>
+                        </label>
+                        <select
+                          name="address_type"
+                          value={addressForm.address_type}
+                          onChange={handleAddressChange}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
+                        >
+                          <option value="">Select Address Type</option>
+                          <option>Billing</option>
+                          <option>Shipping</option>
+                          <option>Corporate</option>
+                          <option>Warehouse</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                          Address
+                        </label>
+                        <textarea
+                          name="address"
+                          value={addressForm.address}
+                          onChange={handleAddressChange}
+                          rows="3"
+                          placeholder="Enter full address"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 resize-none"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-3 px-6 pb-6">
+                      <button
+                        type="button"
+                        onClick={closeAddressModal}
+                        className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 hover:cursor-pointer transition-all"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={saveAddress}
+                        className="px-5 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg hover:cursor-pointer transition-all"
+                      >
+                        Save Address
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── CONTACT DETAILS TAB ── */}
+          {activeTab === "contact-details" && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
+                    <i className="bi bi-telephone text-orange-500"></i>
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-semibold text-gray-800">
+                      Contacts Listing
+                    </h2>
+                    <p className="text-xs text-gray-400">
+                      {contacts.length} contact(s) added
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowContactsModal(true)}
+                  className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:cursor-pointer transition-all shadow-sm"
+                >
+                  <i className="bi bi-plus-lg"></i> Add Contact
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        #
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Company
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Customer
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Contact Person
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Number
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Email
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Designation
+                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contacts.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan="8"
+                          className="text-center py-10 text-gray-400"
+                        >
+                          <i className="bi bi-telephone text-3xl block mb-2"></i>
+                          No contacts added yet
+                        </td>
+                      </tr>
+                    ) : (
+                      contacts.map((item, index) => (
+                        <tr
+                          key={item.id}
+                          className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="px-4 py-3.5 text-gray-400 text-xs font-medium">
+                            {index + 1}
+                          </td>
+                          <td className="px-4 py-3.5 text-gray-600">
+                            {item.company_name}
+                          </td>
+                          <td className="px-4 py-3.5 text-gray-700 font-medium">
+                            {item.customer_name}
+                          </td>
+                          <td className="px-4 py-3.5 text-gray-600">
+                            {item.contact_person}
+                          </td>
+                          <td className="px-4 py-3.5 text-gray-600">
+                            {item.contact_number}
+                          </td>
+                          <td className="px-4 py-3.5 text-gray-600">
+                            {item.email}
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-purple-50 text-purple-600 text-xs font-semibold">
+                              {item.designation_name}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => editContact(item)}
+                                className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-400 hover:bg-blue-100 hover:text-blue-600 hover:cursor-pointer transition-all"
+                              >
+                                <i className="bi bi-pencil-square text-sm"></i>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteContact(item.id)}
+                                className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-100 hover:text-red-600 hover:cursor-pointer transition-all"
+                              >
+                                <i className="bi bi-trash3 text-sm"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Contact Modal */}
+              {showcontactsModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+                    <div className="flex items-center justify-between px-6 py-4 bg-orange-500">
+                      <div className="flex items-center gap-2">
+                        <i className="bi bi-telephone text-white"></i>
+                        <h3 className="text-white font-semibold">
+                          {editContactId ? "Edit Contact" : "Add Contact"}
+                        </h3>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowContactsModal(false)}
+                        className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 hover:cursor-pointer transition-all"
+                      >
+                        <i className="bi bi-x-lg text-sm"></i>
+                      </button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                          Contact Person <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="contact_person"
+                          value={contactForm.contact_person}
+                          onChange={handleContactChange}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                          Contact Number <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="contact_number"
+                          value={contactForm.contact_number}
+                          onChange={handleContactChange}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                          Email
+                        </label>
+                        <input
+                          type="text"
+                          name="email"
+                          value={contactForm.email}
+                          onChange={handleContactChange}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                          Designation <span className="text-red-400">*</span>
+                        </label>
+                        <select
+                          name="contact_designation"
+                          value={contactForm.contact_designation}
+                          onChange={handleContactChange}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
+                        >
+                          <option value="">Select Designation</option>
+                          {designations.map((d) => (
+                            <option key={d.id} value={d.id}>
+                              {d.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-3 px-6 pb-6">
+                      <button
+                        type="button"
+                        onClick={() => setShowContactsModal(false)}
+                        className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 hover:cursor-pointer transition-all"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={saveContact}
+                        className="px-5 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg hover:cursor-pointer transition-all"
+                      >
+                        Save Contact
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
 }
