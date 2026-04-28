@@ -7,6 +7,7 @@ import Select from "react-select";
 import Header from "@/app/components/header";
 import { useRouter } from "next/navigation";
 import { X, FileImage, FileText } from "lucide-react";
+import useAuth from "@/app/components/useAuth";
 
 // Decode token function
 const decodeToken = (token) => {
@@ -18,6 +19,9 @@ const decodeToken = (token) => {
 };
 
 export default function Page() {
+
+  useAuth();
+  
 
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 

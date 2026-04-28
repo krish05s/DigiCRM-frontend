@@ -7,16 +7,23 @@ import { useRouter } from "next/navigation";
 import Header from "../components/header";
 import { toast } from "react-toastify";
 import Link from "next/link";
+import useAuth from "../components/useAuth";
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 const API_base = `${API_BASE}/api/todos`;
+
 
 export default function Page() {
   const [todos, setTodos] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentTodo, setCurrentTodo] = useState({ id: null, title: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useAuth();
+
+  const router = useRouter();
 
   // Helper to get axios config with JWT
   const getConfig = () => {
@@ -28,21 +35,7 @@ export default function Page() {
     return { headers: { Authorization: `Bearer ${token}` } };
   };
 
-  // Token Check
-  const [role, setRole] = useState("");
-  const router = useRouter();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-
-    if (!token) {
-      router.push("/");
-      toast.error("Please Login First");
-    } else {
-      setRole(role);
-    }
-  }, [router]);
 
   // Fetch all todos
   const fetchTodos = useCallback(async () => {
@@ -83,41 +76,45 @@ export default function Page() {
   const closeModal = () => setShowModal(false);
 
   // Add or update todo
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!currentTodo.title.trim()) return; // Prevent empty title
+const handleSave = async (e) => {
+  e.preventDefault();
+  if (!currentTodo.title.trim()) return;
 
-    try {
-      const config = getConfig();
-      if (!config) return;
+  try {
+    setIsSubmitting(true); // ✅ START
 
-      if (isEditing) {
-        await axios.put(
-          `${API_base}/update/${currentTodo.id}`,
-          { title: currentTodo.title },
-          config,
-        );
-      } else {
-        await axios.post(
-          `${API_base}/insert`,
-          { title: currentTodo.title },
-          config,
-        );
-      }
+    const config = getConfig();
+    if (!config) return;
 
-      closeModal();
-      fetchTodos();
-    } catch (err) {
-      console.error("Error saving todo:", err);
-      if (
-        err.response &&
-        (err.response.status === 401 || err.response.status === 403)
-      ) {
-        localStorage.removeItem("token");
-        router.push("/");
-      }
+    if (isEditing) {
+      await axios.put(
+        `${API_base}/update/${currentTodo.id}`,
+        { title: currentTodo.title },
+        config,
+      );
+    } else {
+      await axios.post(
+        `${API_base}/insert`,
+        { title: currentTodo.title },
+        config,
+      );
     }
-  };
+
+    closeModal();
+    fetchTodos();
+  } catch (err) {
+    console.error("Error saving todo:", err);
+    if (
+      err.response &&
+      (err.response.status === 401 || err.response.status === 403)
+    ) {
+      localStorage.removeItem("token");
+      router.push("/");
+    }
+  } finally {
+    setIsSubmitting(false); // ✅ STOP
+  }
+};
 
   // Toggle finish/unfinish
   const handleToggle = async (id) => {
@@ -391,16 +388,15 @@ export default function Page() {
       {showModal && (
         <div className="fixed inset-0 bg-gray-900/30 flex items-center justify-center z-50">
           <div className="bg-white w-full max-w-md rounded-md shadow-xl p-6 ">
-            
             <h3 className="text-xl font-semibold mb-4 text-gray-700 flex items-center justify-between">
-  {isEditing ? "Edit ToDo" : "Add New ToDo"}
-  <button
-    onClick={() => setShowModal(false)}
-    className=" flex items-center justify-center text-md  text-gray-400 hover:text-orange-500 transition-all"
-  >
-    ✕
-  </button>
-</h3>
+              {isEditing ? "Edit ToDo" : "Add New ToDo"}
+              <button
+                onClick={() => setShowModal(false)}
+                className=" flex items-center justify-center text-md  text-gray-400 hover:text-orange-500 transition-all"
+              >
+                ✕
+              </button>
+            </h3>
 
             <form onSubmit={handleSave} className="space-y-4">
               <input
@@ -423,9 +419,35 @@ export default function Page() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-orange-500 text-white rounded-sm hover:bg-orange-600 font-medium"
+                  disabled={isSubmitting}
+                  className={`w-24 px-4 py-2 bg-orange-500 text-white rounded-sm hover:bg-orange-600 font-medium flex items-center justify-center
+    ${isSubmitting ? "opacity-70 cursor-not-allowed" : ""}
+  `}
                 >
-                  {isEditing ? "Update" : "Add"}
+                  {isSubmitting ? (
+                    <svg
+                      className="animate-spin h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="4"
+                        opacity="0.25"
+                      />
+                      <path
+                        fill="white"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      />
+                    </svg>
+                  ) : isEditing ? (
+                    "Update"
+                  ) : (
+                    "Add"
+                  )}
                 </button>
               </div>
             </form>

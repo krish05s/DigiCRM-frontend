@@ -1,10 +1,14 @@
+"use client";
 import React from 'react'
 import Link from "next/link";
 import Header from '@/app/components/header';
+import useAuth from '@/app/components/useAuth';
 
 export default function Page() {
 
     const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+    useAuth();
     
     return (
         <>

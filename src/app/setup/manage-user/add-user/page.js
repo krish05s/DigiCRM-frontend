@@ -4,8 +4,11 @@ import Link from "next/link";
 import axios from "redaxios";
 import Header from "@/app/components/header";
 import { toast } from "react-toastify";
+import useAuth from "@/app/components/useAuth";
 
 export default function AddUserForm() {
+
+    useAuth(["Super Admin"]);
 
     const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 

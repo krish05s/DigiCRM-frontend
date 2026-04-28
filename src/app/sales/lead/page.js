@@ -6,6 +6,7 @@ import Header from "@/app/components/header";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { checkRole } from "@/utils/checkRole";
+import useAuth from "@/app/components/useAuth";
 
 export default function Page() {
   const [btnLoading, setBtnLoading] = useState(false);
@@ -56,6 +57,8 @@ export default function Page() {
     contact_person: "",
     description: "",
   });
+
+  useAuth();
 
   const fetchLeads = async () => {
     try {
@@ -1568,18 +1571,44 @@ export default function Page() {
               <button
                 onClick={handleSubmit}
                 disabled={btnLoading}
+<<<<<<< Updated upstream
                 className={`px-6 py-2 text-sm font-semibold text-white rounded-xl transition-all shadow-md shadow-orange-200 flex items-center gap-2
                 ${
                   btnLoading
                     ? "bg-orange-400 cursor-not-allowed"
                     : "bg-orange-500 hover:bg-orange-600"
                 }`}
+=======
+                className={`px-6 py-2 text-sm font-semibold text-white rounded-xl transition-all shadow-md shadow-orange-200 flex items-center justify-center gap-2
+  ${
+    btnLoading
+      ? "bg-orange-400 cursor-not-allowed"
+      : "bg-orange-500 hover:bg-orange-600"
+  }`}
+>>>>>>> Stashed changes
               >
-                {btnLoading && (
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                {btnLoading ? (
+                  <svg
+                    className="animate-spin h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="white"
+                      strokeWidth="4"
+                      opacity="0.25"
+                    />
+                    <path
+                      fill="white"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    />
+                  </svg>
+                ) : (
+                  "Add"
                 )}
-
-                {btnLoading ? "Adding..." : "Add"}
               </button>
             </div>
           </div>
@@ -1888,18 +1917,44 @@ export default function Page() {
               <button
                 onClick={handleUpdate}
                 disabled={updateLoading}
+<<<<<<< Updated upstream
                 className={`px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all shadow-md shadow-orange-200 flex items-center gap-2
                 ${
                   updateLoading
                     ? "bg-orange-400 cursor-not-allowed"
                     : "bg-orange-500 hover:bg-orange-600"
                 }`}
+=======
+                className={`w-36 px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all shadow-md shadow-orange-200 flex items-center justify-center gap-2
+  ${
+    updateLoading
+      ? "bg-orange-400 cursor-not-allowed"
+      : "bg-orange-500 hover:bg-orange-600"
+  }`}
+>>>>>>> Stashed changes
               >
-                {updateLoading && (
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                {updateLoading ? (
+                  <svg
+                    className="animate-spin h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="white"
+                      strokeWidth="4"
+                      opacity="0.25"
+                    />
+                    <path
+                      fill="white"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    />
+                  </svg>
+                ) : (
+                  "Add Follow-Up"
                 )}
-
-                {updateLoading ? "Adding..." : "Add Follow-Up"}
               </button>
             </div>
           </div>

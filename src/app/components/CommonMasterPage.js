@@ -29,6 +29,7 @@ export default function CommonMasterPage({
   const [parentDesignation, setParentDesignation] = useState("");
   const [name, setName] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const searchTimeout = useRef(null);
 
@@ -85,9 +86,14 @@ export default function CommonMasterPage({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const payload = { parent_designation: selectedParent || "", name: formName };
+    const payload = {
+      parent_designation: selectedParent || "",
+      name: formName,
+    };
 
     try {
+      setIsSubmitting(true); // ✅ START
+
       if (editId) {
         await axios.put(`${saveApi}/update/${editId}`, payload);
         toast.success("Updated successfully");
@@ -100,6 +106,8 @@ export default function CommonMasterPage({
     } catch (err) {
       console.error("Error saving:", err);
       toast.error("Error saving data");
+    } finally {
+      setIsSubmitting(false); // ✅ STOP
     }
   };
 
@@ -171,27 +179,42 @@ export default function CommonMasterPage({
         <div className="bg-white w-full rounded-sm shadow-lg p-3 mt-1 mb-5 flex justify-between items-center">
           <div className="flex items-center text-gray-700">
             <span>
-              <Link href="/dashboard" className="mx-3 text-xl text-gray-400 hover:text-indigo-600">
+              <Link
+                href="/dashboard"
+                className="mx-3 text-xl text-gray-400 hover:text-indigo-600"
+              >
                 <i className="bi bi-house"></i>
               </Link>
             </span>
             <i className="bi bi-chevron-right"></i>
             <span>
-              <Link href="/setup" className="mx-3 text-gray-700 hover:text-orange-500">
+              <Link
+                href="/setup"
+                className="mx-3 text-gray-700 hover:text-orange-500"
+              >
                 Setup
               </Link>
             </span>
             <i className="bi bi-chevron-right"></i>
             {breadcrumbs.map((b, i) => (
-              <span key={i} className="flex items-center text-gray-700 hover:text-orange-500">
+              <span
+                key={i}
+                className="flex items-center text-gray-700 hover:text-orange-500"
+              >
                 <span className="mx-3">{b}</span>
-                {i < breadcrumbs.length - 1 && <i className="bi bi-chevron-right"></i>}
+                {i < breadcrumbs.length - 1 && (
+                  <i className="bi bi-chevron-right"></i>
+                )}
               </span>
             ))}
           </div>
 
           <div>
-            <button type="button" onClick={() => setShowForm(true)} className="bg-orange-500 text-white px-4 py-2 rounded-sm shadow hover:bg-orange-600">
+            <button
+              type="button"
+              onClick={() => setShowForm(true)}
+              className="bg-orange-500 text-white px-4 py-2 rounded-sm shadow hover:bg-orange-600"
+            >
               + Add {title}
             </button>
           </div>
@@ -200,7 +223,12 @@ export default function CommonMasterPage({
         {/* Filters */}
         <div className="mx-6">
           {extraColumn && (
-            <select value={parentDesignation} onChange={(e) => setParentDesignation(e.target.value)} className="mx-2 bg-white  w-60 p-2 border border-gray-300 rounded-sm outline-none focus:ring-1 focus:ring-orange-200 text-gray-400" required>
+            <select
+              value={parentDesignation}
+              onChange={(e) => setParentDesignation(e.target.value)}
+              className="mx-2 bg-white  w-60 p-2 border border-gray-300 rounded-sm outline-none focus:ring-1 focus:ring-orange-200 text-gray-400"
+              required
+            >
               <option value="">Select Parent Designation</option>
               {parentOptions.map((opt) => (
                 <option key={opt.id} value={opt.name}>
@@ -210,16 +238,34 @@ export default function CommonMasterPage({
             </select>
           )}
 
-          <input type="text" placeholder={`Enter ${title}`} className="p-2 w-50 mb-3 border text-gray-400 bg-white  border-gray-300 rounded-sm outline-none focus:ring-1 focus:ring-orange-200 " value={name} onChange={(e) => setName(e.target.value)} />
+          <input
+            type="text"
+            placeholder={`Enter ${title}`}
+            className="p-2 w-50 mb-3 border text-gray-400 bg-white  border-gray-300 rounded-sm outline-none focus:ring-1 focus:ring-orange-200 "
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
 
-          <select className="mx-3 w-48 p-2 border text-gray-400 bg-white rounded-sm border-gray-300 outline-none focus:ring-1 focus:ring-orange-200" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <select
+            className="mx-3 w-48 p-2 border text-gray-400 bg-white rounded-sm border-gray-300 outline-none focus:ring-1 focus:ring-orange-200"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
             <option value="">Select Status</option>
             <option value="1">Active</option>
             <option value="0">Inactive</option>
           </select>
 
-          <button type="button" onClick={() => { setParentDesignation(""); setName(""); setStatusFilter(""); fetchData(); }}
-            className="border rounded-sm p-0.5 border-gray-200  text-md text-center px-2   bg-gray-200 text-gray-700 hover:bg-gray-300">
+          <button
+            type="button"
+            onClick={() => {
+              setParentDesignation("");
+              setName("");
+              setStatusFilter("");
+              fetchData();
+            }}
+            className="border rounded-sm p-0.5 border-gray-200  text-md text-center px-2   bg-gray-200 text-gray-700 hover:bg-gray-300"
+          >
             Clear
           </button>
         </div>
@@ -234,12 +280,9 @@ export default function CommonMasterPage({
                   {extraColumn && (
                     <th className="py-3 px-4 text-center">
                       {extraColumn.label}
-                      
                     </th>
                   )}
-                  <th className="py-3 px-4">
-                    {title} Name 
-                  </th>
+                  <th className="py-3 px-4">{title} Name</th>
                   {showCheckboxColumn && (
                     <th className="py-3 px-4 text-center">Select</th>
                   )}
@@ -255,28 +298,51 @@ export default function CommonMasterPage({
                       {(currentPage - 1) * itemsPerPage + i + 1}
                     </td>
                     {extraColumn && (
-                      <td className="py-2 px-4 text-center">{item[extraColumn.key] || "-"}</td>
+                      <td className="py-2 px-4 text-center">
+                        {item[extraColumn.key] || "-"}
+                      </td>
                     )}
-                    <td className="py-1 px-4 font-medium text-gray-800">{item.name}</td>
+                    <td className="py-1 px-4 font-medium text-gray-800">
+                      {item.name}
+                    </td>
 
                     {showCheckboxColumn && (
                       <td className="py-2 px-4 text-center">
-                        <input type="checkbox" checked={item.default === 1} onChange={() => handleCheckboxChange(item.id, item.default)} className="w-4 h-4 cursor-pointer" />
+                        <input
+                          type="checkbox"
+                          checked={item.default === 1}
+                          onChange={() =>
+                            handleCheckboxChange(item.id, item.default)
+                          }
+                          className="w-4 h-4 cursor-pointer"
+                        />
                       </td>
                     )}
 
                     <td className="py-1 px-4 text-center">
                       <label className="inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only" checked={item.status === 1} onChange={() => handleToggle(item.id, item.status)} />
-                        <div className={`relative w-12 h-6 rounded-full transition-all duration-300 ${item.status === 1 ? "bg-orange-500" : "bg-gray-300"}`}>
-                          <div className={`absolute top-1 left-1 w-4 h-3 bg-white rounded-full transition-all duration-300 ${item.status === 1 ? "translate-x-6" : "translate-x-1"}`}>
-                          </div>
+                        <input
+                          type="checkbox"
+                          className="sr-only"
+                          checked={item.status === 1}
+                          onChange={() => handleToggle(item.id, item.status)}
+                        />
+                        <div
+                          className={`relative w-12 h-6 rounded-full transition-all duration-300 ${item.status === 1 ? "bg-orange-500" : "bg-gray-300"}`}
+                        >
+                          <div
+                            className={`absolute top-1 left-1 w-4 h-3 bg-white rounded-full transition-all duration-300 ${item.status === 1 ? "translate-x-6" : "translate-x-1"}`}
+                          ></div>
                         </div>
                       </label>
                     </td>
 
                     <td className="py-1 px-4 text-center">
-                      <button type="button" onClick={() => handleEdit(item)} className="text-gray-700 hover:text-blue-700">
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(item)}
+                        className="text-gray-700 hover:text-blue-700"
+                      >
                         <i className="bi bi-pencil-square text-lg"></i>
                       </button>
                     </td>
@@ -288,7 +354,12 @@ export default function CommonMasterPage({
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-6 py-3 border-gray-200 bg-white rounded-b-lg">
                 {/* Previous Button */}
-                <button type="button" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="px-4 py-2 text-sm font-medium rounded-sm  bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 text-sm font-medium rounded-sm  bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   Previous
                 </button>
 
@@ -299,12 +370,16 @@ export default function CommonMasterPage({
                 </span>
 
                 {/* Next Button */}
-                <button type="button" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-4 py-2 text-sm font-medium rounded-sm border bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-70 disabled:cursor-not-allowed">
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 text-sm font-medium rounded-sm border bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
                   Next
                 </button>
               </div>
             )}
-
           </div>
         </form>
 
@@ -312,8 +387,15 @@ export default function CommonMasterPage({
         {showForm && (
           <div className="fixed inset-0 bg-gray-900/30 z-50 flex justify-center items-center">
             <div className="bg-white rounded-sm shadow-lg p-6 w-[400px] relative">
-              <button type="button" onClick={() => { setShowForm(false); setFormName(""); setEditId(null); }}
-                className="absolute top-2 right-4 text-xl text-orange-500 hover:text-orange-600">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForm(false);
+                  setFormName("");
+                  setEditId(null);
+                }}
+                className="absolute top-2 right-4 text-xl text-orange-500 hover:text-orange-600"
+              >
                 ✕
               </button>
 
@@ -328,11 +410,21 @@ export default function CommonMasterPage({
                     </label>
                     <div className="flex gap-4 items-center">
                       <label className="flex items-center gap-1">
-                        <input type="radio" name="isParent" checked={isParent === true} onChange={() => setIsParent(true)} />
+                        <input
+                          type="radio"
+                          name="isParent"
+                          checked={isParent === true}
+                          onChange={() => setIsParent(true)}
+                        />
                         <span>Yes</span>
                       </label>
                       <label className="flex items-center gap-1">
-                        <input type="radio" name="isParent" checked={isParent === false} onChange={() => setIsParent(false)} />
+                        <input
+                          type="radio"
+                          name="isParent"
+                          checked={isParent === false}
+                          onChange={() => setIsParent(false)}
+                        />
                         <span>No</span>
                       </label>
                     </div>
@@ -344,7 +436,11 @@ export default function CommonMasterPage({
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Select Parent
                     </label>
-                    <select value={selectedParent} onChange={(e) => setSelectedParent(e.target.value)} className="border p-2 w-full rounded-sm">
+                    <select
+                      value={selectedParent}
+                      onChange={(e) => setSelectedParent(e.target.value)}
+                      className="border p-2 w-full rounded-sm"
+                    >
                       <option value="">-- Select Parent --</option>
                       {parentOptions.map((opt) => (
                         <option key={opt.id} value={opt.name}>
@@ -358,15 +454,58 @@ export default function CommonMasterPage({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {title} Name
                 </label>
-                <input type="text" placeholder="Enter name" className="border p-2 w-full rounded-sm mb-3 outline-none focus:ring-orange-200 focus:ring-1 border-gray-300" value={formName} onChange={(e) => setFormName(e.target.value)} required />
+                <input
+                  type="text"
+                  placeholder="Enter name"
+                  className="border p-2 w-full rounded-sm mb-3 outline-none focus:ring-orange-200 focus:ring-1 border-gray-300"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  required
+                />
 
                 <div className="flex justify-end gap-2">
-                  <button type="button" onClick={() => { setShowForm(false); setFormName(""); setEditId(null); }}
-                    className="px-4 py-2 bg-gray-200 rounded-sm text-gray-700 hover:bg-gray-300">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForm(false);
+                      setFormName("");
+                      setEditId(null);
+                    }}
+                    className="px-4 py-2 bg-gray-200 rounded-sm text-gray-700 hover:bg-gray-300"
+                  >
                     Cancel
                   </button>
-                  <button type="submit" className="bg-orange-500 text-white px-4 py-1.5 rounded-sm hover:bg-orange-600  ">
-                    Save
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className={`w-24 flex items-center justify-center bg-orange-500 text-white px-4 py-1.5 rounded-sm
+    ${isSubmitting ? "opacity-70 cursor-not-allowed" : "hover:bg-orange-600"}
+  `}
+                  >
+                    {isSubmitting ? (
+                      <svg
+                        className="animate-spin h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="white"
+                          strokeWidth="4"
+                          opacity="0.25"
+                        />
+                        <path
+                          fill="white"
+                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                        />
+                      </svg>
+                    ) : editId ? (
+                      "Update"
+                    ) : (
+                      "Save"
+                    )}
                   </button>
                 </div>
               </form>
