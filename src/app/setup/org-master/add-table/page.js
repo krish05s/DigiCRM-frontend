@@ -4,10 +4,13 @@ import axios from "redaxios";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
+import useAuth from '@/app/components/useAuth';
 
 export default function Page() {
 
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  useAuth();
 
   const [activeTab, setActiveTab] = useState("organization");
 

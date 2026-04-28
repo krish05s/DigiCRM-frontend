@@ -6,11 +6,14 @@ import Link from "next/link";
 import axios from "redaxios";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import useAuth from "@/app/components/useAuth";
 
 
 export default function AddInquiry() {
 
     const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+    useAuth();
 
     const [companyname, setCompanyname] = useState([]);
     const [customername, setCustomername] = useState([]);
