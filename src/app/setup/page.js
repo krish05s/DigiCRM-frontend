@@ -122,7 +122,7 @@ export default function setupPage() {
                         </div> */}
 
                             {/* ORG Master */}
-                            {hasRoleAccess(["Super Admin"]) && (
+                            {hasRoleAccess(["Super Admin"]) && 
                             <div className="bg-orange-50 rounded-sm shadow-sm border border-gray-200 p-6">
                                 <h2 className="text-xl font-semibold text-orange-500">ORG Master</h2>
                                 <hr className="border-gray-300 my-3" />
@@ -132,7 +132,7 @@ export default function setupPage() {
                                     {/* <Link href="/setup/org-master/org-notification" className="hover:text-orange-600">Organization Notification</Link> */}
                                 </div>
                             </div>
-                            )}
+                            }
 
                             {/* Email Template */}
                             {/* <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
