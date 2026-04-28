@@ -24,6 +24,7 @@ export default function Page() {
   const [category, setCategory] = useState([]);
   const [productList, setProductList] = useState([]);
   const [asignee, setAsignee] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // form state
   const [formData, setFormData] = useState({
@@ -91,21 +92,22 @@ export default function Page() {
     });
   };
 
-  // update API call
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const timeout = setTimeout(() => {
+      setIsSubmitting(false);
+      toast.error("Request timed out. Please try again.");
+    }, 60000);
+
     try {
+      setIsSubmitting(true);
+
       const response = await fetch(
         `${API_BASE}/api/lead/update/${formData.lead_id}`,
-
         {
           method: "PUT",
-
-          headers: {
-            "Content-Type": "application/json",
-          },
-
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
         },
       );
@@ -114,15 +116,18 @@ export default function Page() {
 
       if (data.success) {
         toast.success("Lead Updated Successfully");
-
+        clearTimeout(timeout);
         sessionStorage.removeItem("editLead");
-
         router.push("/sales/lead");
       } else {
         toast.error("Update Failed");
       }
     } catch (error) {
       console.error(error);
+      toast.error("Something went wrong");
+    } finally {
+      clearTimeout(timeout);
+      setIsSubmitting(false);
     }
   };
 
@@ -480,9 +485,33 @@ export default function Page() {
 
                 <button
                   type="submit"
-                  className="px-6 py-2 rounded-lg bg-blue-800 text-white"
+                  disabled={isSubmitting}
+                  className={`px-6 py-2 rounded-lg bg-blue-800 text-white flex items-center gap-2
+    ${isSubmitting ? "opacity-70 cursor-not-allowed" : ""}
+  `}
                 >
-                  Save
+                  {isSubmitting ? (
+                    <svg
+                      className="animate-spin h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="4"
+                        opacity="0.25"
+                      />
+                      <path
+                        fill="white"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      />
+                    </svg>
+                  ) : (
+                    "Save"
+                  )}
                 </button>
               </div>
             </div>
