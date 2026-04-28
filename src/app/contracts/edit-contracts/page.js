@@ -7,11 +7,14 @@ import Select from "react-select";
 import Header from "@/app/components/header";
 import { useRouter } from "next/navigation";
 import { X, FileImage, FileText } from "lucide-react";
+import useAuth from "@/app/components/useAuth";
 
 export default function EditContract() {
   const router = useRouter();
 
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  useAuth();
 
   const [showModal, setShowModal] = useState(false);
 

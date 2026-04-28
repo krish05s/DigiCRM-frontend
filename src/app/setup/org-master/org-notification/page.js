@@ -3,10 +3,13 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import axios from "redaxios";
 import Header from "@/app/components/header";
+import useAuth from "@/app/components/useAuth";
 
 export default function Page() {
 
     const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+    useAuth();
 
     const [modules, setModules] = useState([]);
 

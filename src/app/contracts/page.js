@@ -7,11 +7,13 @@ import { ChevronUpIcon, ChevronDownIcon } from "lucide-react";
 import Header from "../components/header";
 import Select from "react-select";
 import { useRouter } from "next/navigation";
+import useAuth from "../components/useAuth";
 
 
 export default function Page() {
 
     const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+    useAuth();
 
     const [formData, setFormData] = useState({
         company_name: "",

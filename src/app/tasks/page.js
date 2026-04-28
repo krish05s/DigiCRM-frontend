@@ -7,9 +7,12 @@ import { ChevronUpIcon, ChevronDownIcon } from "lucide-react";
 import Header from "../components/header";
 import Select from "react-select";
 import { X, FileImage, FileText } from "lucide-react";
+import useAuth from "../components/useAuth";
 
 export default function Page() {
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  useAuth();
 
   const exportRef = useRef(null);
   const [formData, setFormData] = useState({
@@ -41,6 +44,7 @@ export default function Page() {
 
   const [scrollOffsets, setScrollOffsets] = useState({});
   const [loadingColumns, setLoadingColumns] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const APIBase = `${API_BASE}/api/tasks`;
 
@@ -343,7 +347,6 @@ const exportToPDF = async () => {
 
     const fd = new FormData();
 
-    // Append normal fields
     fd.append("task_name", formData.task_name);
     fd.append("status", formData.status);
     fd.append("priority", formData.priority);
@@ -352,38 +355,24 @@ const exportToPDF = async () => {
     fd.append("description", formData.description);
     fd.append("assignee", formData.assignee);
     fd.append("template", formData.template);
-
     fd.append("start_date", startDate);
     fd.append("due_date", dueDate);
     fd.append("related_to", relatedTo);
     fd.append("related_value", secondValue);
-
     fd.append("created_by_id", localStorage.getItem("id"));
     fd.append("created_by_name", localStorage.getItem("username"));
 
-    // append existing file ids to keep
-    existingFiles.forEach((file) => {
-      fd.append("existing_files[]", file.id);
-    });
-
-    // append deleted file ids
-    removedFiles.forEach((id) => {
-      fd.append("removed_files[]", id);
-    });
-
-    // append new uploaded files
-    newFiles.forEach((item) => {
-      fd.append("files", item.file);
-    });
+    existingFiles.forEach((file) => fd.append("existing_files[]", file.id));
+    removedFiles.forEach((id) => fd.append("removed_files[]", id));
+    newFiles.forEach((item) => fd.append("files", item.file));
 
     const config = {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        // axios automatically sets multipart boundary, so Content-Type can be omitted
-      },
+      headers: { Authorization: `Bearer ${token}` },
     };
 
     try {
+      setIsSubmitting(true); // ✅ START
+
       if (editId) {
         await axios.put(`${APIBase}/update/${editId}`, fd, config);
         toast.success("Task updated successfully!");
@@ -401,6 +390,8 @@ const exportToPDF = async () => {
       } else {
         toast.error("Something went wrong");
       }
+    } finally {
+      setIsSubmitting(false); // ✅ STOP
     }
   };
 
@@ -677,8 +668,9 @@ const exportToPDF = async () => {
               <i className="bi bi-download text-base"></i>
               Export
               <i
-                className={`bi bi-chevron-down text-xs transition-transform duration-200 ${showExportMenu ? "rotate-180" : ""
-                  }`}
+                className={`bi bi-chevron-down text-xs transition-transform duration-200 ${
+                  showExportMenu ? "rotate-180" : ""
+                }`}
               ></i>
             </button>
 
@@ -882,16 +874,16 @@ const exportToPDF = async () => {
                     <td className="py-1 px-4">
                       {item.start_date
                         ? new Date(item.start_date)
-                          .toLocaleDateString("en-GB")
-                          .replace(/\//g, "-")
+                            .toLocaleDateString("en-GB")
+                            .replace(/\//g, "-")
                         : "-"}
                     </td>
 
                     <td className="py-2 px-4 ">
                       {item.due_date
                         ? new Date(item.due_date)
-                          .toLocaleDateString("en-GB")
-                          .replace(/\//g, "-")
+                            .toLocaleDateString("en-GB")
+                            .replace(/\//g, "-")
                         : "-"}
                     </td>
 
@@ -913,13 +905,13 @@ const exportToPDF = async () => {
                       {[
                         ...Array(
                           3 -
-                          (item.priority === "High"
-                            ? 3
-                            : item.priority === "Medium"
-                              ? 2
-                              : item.priority === "Low"
-                                ? 1
-                                : 0),
+                            (item.priority === "High"
+                              ? 3
+                              : item.priority === "Medium"
+                                ? 2
+                                : item.priority === "Low"
+                                  ? 1
+                                  : 0),
                         ),
                       ].map((_, i) => (
                         <span key={i} style={{ opacity: 0.3 }}>
@@ -1235,9 +1227,9 @@ const exportToPDF = async () => {
                         value={
                           formData.assignee
                             ? formData.assignee.split(",").map((n) => ({
-                              label: n.trim(),
-                              value: n.trim(),
-                            }))
+                                label: n.trim(),
+                                value: n.trim(),
+                              }))
                             : []
                         }
                         onChange={(selected) => {
@@ -1503,6 +1495,7 @@ const exportToPDF = async () => {
                 )}
 
                 {/* BUTTONS */}
+                {/* BUTTONS */}
                 <div className="flex justify-end mt-5 gap-2">
                   <button
                     type="button"
@@ -1516,9 +1509,35 @@ const exportToPDF = async () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-sm"
+                    disabled={isSubmitting}
+                    className={`w-28 px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-sm flex items-center justify-center
+      ${isSubmitting ? "opacity-70 cursor-not-allowed" : ""}
+    `}
                   >
-                    {editId ? "UPDATE" : "SAVE"}
+                    {isSubmitting ? (
+                      <svg
+                        className="animate-spin h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="white"
+                          strokeWidth="4"
+                          opacity="0.25"
+                        />
+                        <path
+                          fill="white"
+                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                        />
+                      </svg>
+                    ) : editId ? (
+                      "UPDATE"
+                    ) : (
+                      "SAVE"
+                    )}
                   </button>
                 </div>
               </form>

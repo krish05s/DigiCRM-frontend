@@ -6,6 +6,7 @@ import Header from "@/app/components/header";
 import { toast } from "react-toastify";
 import Select from "react-select";
 import { checkRole } from "@/utils/checkRole";
+import useAuth from "@/app/components/useAuth";
 
 export default function QuotationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,6 +51,8 @@ export default function QuotationPage() {
     grand_total: "",
     description: "",
   });
+
+  useAuth();
 
   // ========================
   // FETCH

@@ -6,10 +6,13 @@ import Header from "@/app/components/header";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import useAuth from "@/app/components/useAuth";
 
 export default function UpdateUserForm() {
 
     const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+    useAuth();
 
     const router = useRouter();
     const [userId, setUserId] = useState(null);

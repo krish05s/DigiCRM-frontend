@@ -1,14 +1,16 @@
+"use client";
 import Link from "next/link";
 import React from 'react'
 import Header from '../components/header';
 import axios from "redaxios";
 import CheckPermission from "../components/CheckPermission";
+import { hasRoleAccess } from "@/utils/roleAccess";
 
 export default function setupPage() {
     return (
         <>
             <Header />
-            <CheckPermission allowedRoles={["Admin", "head department"]} >
+            <CheckPermission allowedRoles={["Super Admin", "Admin"]} >
                 <div className="bg-gray-100">
                     <div className="bg-white w-full shadow-lg p-3 mt-1 mb-5">
                         <div className="flex justify-between items-center">
@@ -18,7 +20,7 @@ export default function setupPage() {
                                 </Link>
                                 <i className="bi bi-chevron-right"></i>
                                 <Link href="/setup" className="mx-3 text-md text-gray-700 hover:text-orange-500">
-                                    Setup
+                                    Settings
                                 </Link>
                             </p>
                         </div>
@@ -28,6 +30,7 @@ export default function setupPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
 
                             {/* Roles */}
+                            {hasRoleAccess(["Super Admin"]) && (
                             <div className="bg-orange-50 rounded-sm shadow-sm border border-gray-200 p-6">
                                 <h2 className="text-xl font-semibold text-orange-500">Roles</h2>
                                 <hr className="border-gray-300 my-3" />
@@ -36,6 +39,7 @@ export default function setupPage() {
                                     <Link href="/setup/roles/designation-master" className="hover:text-orange-600">Designation Master</Link>
                                 </div>
                             </div>
+                            )}
 
                             {/* Inquiry/Leads */}
                             <div className="bg-orange-50 rounded-sm shadow-sm border border-gray-200 p-6">
@@ -119,14 +123,17 @@ export default function setupPage() {
                         </div> */}
 
                             {/* ORG Master */}
+                            {hasRoleAccess(["Super Admin"]) && (
                             <div className="bg-orange-50 rounded-sm shadow-sm border border-gray-200 p-6">
                                 <h2 className="text-xl font-semibold text-orange-500">ORG Master</h2>
                                 <hr className="border-gray-300 my-3" />
                                 <div className="flex flex-col space-y-2 text-gray-700">
+                                    
                                     <Link href="/setup/org-master/read-table" className="hover:text-orange-600">Organization Profile</Link>
                                     {/* <Link href="/setup/org-master/org-notification" className="hover:text-orange-600">Organization Notification</Link> */}
                                 </div>
                             </div>
+                            )}
 
                             {/* Email Template */}
                             {/* <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
