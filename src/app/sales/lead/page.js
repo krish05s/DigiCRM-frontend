@@ -803,7 +803,7 @@ export default function Page() {
             <div className="relative" ref={exportRef}>
               <button
                 onClick={() => setShowExportMenu((prev) => !prev)}
-                className="flex items-center gap-2 border-orange-300 bg-orange-50 text-orange-500 px-4 py-2 rounded-sm text-sm font-semibold tracking-wide transition-all shadow-sm"
+                className="flex items-center gap-2  bg-orange-50 text-orange-500 px-4 py-2 rounded-sm text-sm font-semibold tracking-wide transition-all shadow-sm"
               >
                 <i className="bi bi-download text-base"></i>
                 Export
@@ -820,7 +820,7 @@ export default function Page() {
                     onClick={exportToExcel}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-all"
                   >
-                    <div className="w-6 h-6 rounded-lg bg-green-100 flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-sm  flex items-center justify-center">
                       <i className="bi bi-file-earmark-excel text-green-600 text-sm"></i>
                     </div>
                     Export Excel
@@ -832,7 +832,7 @@ export default function Page() {
                     onClick={exportToPDF}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-sm  flex items-center justify-center">
                       <i className="bi bi-file-earmark-pdf text-red-600 text-sm"></i>
                     </div>
                     Export PDF
@@ -1044,8 +1044,8 @@ export default function Page() {
             {loading ? (
               <div className="text-center py-10 text-gray-400">Loading...</div>
             ) : (
-              <div className="overflow-x-auto overflow-y-scroll max-h-[500px] custom-scroll">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto overflow-y-scroll max-h-[600px] custom-scroll " style={{overflowX: 'scroll'}}>
+                <table className="w-full text-sm ">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
                       <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
@@ -1534,17 +1534,8 @@ export default function Page() {
               <button
                 onClick={handleSubmit}
                 disabled={btnLoading}
-<<<<<<< Updated upstream
-                className={`px-6 py-2 text-sm font-semibold text-white rounded-xl transition-all shadow-md shadow-orange-200 flex items-center justify-center gap-2
-  ${
-    btnLoading
-      ? "bg-orange-400 cursor-not-allowed"
-      : "bg-orange-500 hover:bg-orange-600"
-  }`}
-=======
                 className={`px-6 py-2 text-sm font-semibold text-white rounded-xl transition-all shadow-md shadow-orange-200 flex items-center gap-2
                 ${btnLoading ? "bg-orange-400 cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600"}`}
->>>>>>> Stashed changes
               >
                 {btnLoading ? (
                   <svg
@@ -1568,10 +1559,7 @@ export default function Page() {
                 ) : (
                   "Add"
                 )}
-<<<<<<< Updated upstream
-=======
                 {btnLoading ? "Adding..." : "Add"}
->>>>>>> Stashed changes
               </button>
             </div>
           </div>
@@ -1879,17 +1867,8 @@ export default function Page() {
               <button
                 onClick={handleUpdate}
                 disabled={updateLoading}
-<<<<<<< Updated upstream
-                className={`w-36 px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all shadow-md shadow-orange-200 flex items-center justify-center gap-2
-  ${
-    updateLoading
-      ? "bg-orange-400 cursor-not-allowed"
-      : "bg-orange-500 hover:bg-orange-600"
-  }`}
-=======
                 className={`px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all shadow-md shadow-orange-200 flex items-center gap-2
                 ${updateLoading ? "bg-orange-400 cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600"}`}
->>>>>>> Stashed changes
               >
                 {updateLoading ? (
                   <svg
@@ -1913,10 +1892,7 @@ export default function Page() {
                 ) : (
                   "Add Follow-Up"
                 )}
-<<<<<<< Updated upstream
-=======
                 {updateLoading ? "Adding..." : "Add Follow-Up"}
->>>>>>> Stashed changes
               </button>
             </div>
           </div>

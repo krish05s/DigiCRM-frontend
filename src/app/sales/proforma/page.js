@@ -337,27 +337,10 @@ export default function ProformaPage() {
     const newTotal = existingTotal + newPercent;
     if (newTotal > 100) { toast.error("Total percentage cannot exceed 100%"); return; }
     try {
-<<<<<<< Updated upstream
-      setSubmitLoading(true); // ✅ ADD THIS
-
-      await axios.post(`${API}/api/pi/add-followup/${selectedPI.pi_id}`, {
-        percentage: newPercent,
-      });
-
-      await updateStatus(selectedPI.pi_id, newTotal);
-
-      toast.success(
-        newTotal >= 100
-          ? "Follow-up added & marked as Won 🎉"
-          : "Follow-up added & status set to Pending",
-      );
-
-=======
       const res = await axios.post(`${API}/api/pi/add-followup/${selectedPI.pi_id}`, { percentage: newPercent });
       const confirmedTotal = res.data?.total_percentage ?? newTotal;
       await updateStatus(selectedPI.pi_id, confirmedTotal);
       toast.success(confirmedTotal >= 100 ? "Follow-up added & marked as Won 🎉" : "Follow-up added successfully");
->>>>>>> Stashed changes
       setShowModal(false);
       setPercentage("");
       setRupees("");
@@ -369,24 +352,9 @@ export default function ProformaPage() {
       setSubmitLoading(false); // ✅ ADD THIS
     }
   };
-<<<<<<< Updated upstream
   // ===================================================
   // UPDATE FOLLOW-UP + AUTO STATUS
   // ===================================================
-=======
-
-  const handleEdit = (item) => {
-    setEditing(item);
-    const pct = item.proforma_percentage;
-    setPercentage(pct);
-    if (selectedPI) {
-      const grandTotal = getGrandTotal(selectedPI);
-      setRupees(((grandTotal * pct) / 100).toFixed(2));
-    }
-  };
-
-  // ── UPDATE FOLLOW-UP ──────────────────────────────────────
->>>>>>> Stashed changes
   const handleUpdate = async () => {
     const newPercent = Number(percentage);
     if (!newPercent || newPercent <= 0) { toast.error("Enter valid percentage"); return; }
@@ -397,7 +365,6 @@ export default function ProformaPage() {
     const newTotal = totalExcludingEdited + newPercent;
     if (newTotal > 100) { toast.error("Total percentage cannot exceed 100%"); return; }
     try {
-<<<<<<< Updated upstream
       setUpdateLoading(true); // ✅ ADD THIS
 
       await axios.put(
@@ -405,9 +372,6 @@ export default function ProformaPage() {
         { percentage: newPercent },
       );
 
-=======
-      await axios.put(`${API}/api/pi/update-followup/${selectedPI.pi_id}/${editing.id}`, { percentage: newPercent });
->>>>>>> Stashed changes
       await updateStatus(selectedPI.pi_id, newTotal);
       toast.success(newTotal >= 100 ? "Updated & marked as Won 🎉" : "Updated successfully");
       setShowModal(false);
@@ -421,16 +385,10 @@ export default function ProformaPage() {
       setUpdateLoading(false); // ✅ ADD THIS
     }
   };
-<<<<<<< Updated upstream
   const handleEdit = (item) => {
     setEditing(item);
     setPercentage(item.proforma_percentage);
   };
-=======
-
-  const hasActiveFilters = Object.values(filters).some((v) => v !== "");
-
->>>>>>> Stashed changes
   return (
     <>
       <Header />
@@ -454,23 +412,29 @@ export default function ProformaPage() {
             <div className="relative" ref={exportRef}>
               <button
                 onClick={() => setShowExportMenu((prev) => !prev)}
-                className="flex items-center gap-2 bg-white border border-gray-200 hover:border-orange-300 hover:bg-orange-50 text-gray-600 hover:text-orange-600 px-4 py-2 rounded-xl text-sm font-semibold tracking-wide transition-all shadow-sm"
+                className="flex items-center gap-2  bg-orange-50 text-orange-500 px-4 py-2 rounded-sm text-sm font-semibold tracking-wide transition-all shadow-sm"
               >
                 <i className="bi bi-download text-base"></i>
                 Export
                 <i className={`bi bi-chevron-down text-xs transition-transform ${showExportMenu ? "rotate-180" : ""}`}></i>
               </button>
               {showExportMenu && (
-                <div className="absolute right-0 top-full mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
-                  <button onClick={exportToExcel} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-all">
-                    <div className="w-7 h-7 rounded-lg bg-green-100 flex items-center justify-center">
+                <div className="absolute right-0 top-full mt-1.5 w-44 bg-white rounded-sm shadow-lg border border-gray-100 overflow-hidden z-50">
+                  <button
+                    onClick={exportToExcel}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-all"
+                  >
+                    <div className="w-7 h-7 rounded-sm  flex items-center justify-center">
                       <i className="bi bi-file-earmark-excel text-green-600 text-sm"></i>
                     </div>
                     Export Excel
                   </button>
                   <div className="h-px bg-gray-100 mx-3"></div>
-                  <button onClick={exportToPDF} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all">
-                    <div className="w-7 h-7 rounded-lg bg-red-100 flex items-center justify-center">
+                  <button
+                    onClick={exportToPDF}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all"
+                  >
+                    <div className="w-7 h-7 rounded-sm flex items-center justify-center">
                       <i className="bi bi-file-earmark-pdf text-red-600 text-sm"></i>
                     </div>
                     Export PDF
@@ -516,12 +480,14 @@ export default function ProformaPage() {
 
         {/* ── TABLE ────────────────────────────────────────── */}
         <div className="bg-white rounded-sm border border-gray-100 mx-7 py-2">
-          <div className="p-4">
+          <div className="py-1">
             {loading ? (
               <div className="text-center py-10 text-gray-400">Loading...</div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              // <div className="overflow-x-auto">
+              //   <table className="w-full text-sm custom-scroll">
+                 <div className="overflow-x-auto overflow-y-scroll max-h-[500px] custom-scroll " style={{overflowX: 'scroll'}}>
+                <table className="w-full text-sm ">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
                       <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">#</th>
@@ -920,7 +886,6 @@ export default function ProformaPage() {
                 </button>
               </div>
             </div>
-<<<<<<< Updated upstream
 
             {/* MODAL FOOTER */}
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
@@ -971,8 +936,6 @@ export default function ProformaPage() {
                 )}
               </button>
             </div>
-=======
->>>>>>> Stashed changes
           </div>
         );
       })()}
