@@ -4,6 +4,7 @@ import axios from "redaxios";
 import Link from "next/link";
 import Header from "@/app/components/header";
 import { toast } from "react-toastify";
+import useAuth from "@/app/components/useAuth";
 
 export default function ProformaPage() {
   const [piData, setPiData] = useState([]);
@@ -19,6 +20,8 @@ export default function ProformaPage() {
 
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportRef = useRef(null);
+
+  useAuth();
 
   const API = process.env.NEXT_PUBLIC_BACKEND_URL;
 

@@ -7,9 +7,12 @@ import { ChevronUpIcon, ChevronDownIcon } from "lucide-react";
 import Header from "../components/header";
 import Select from "react-select";
 import { X, FileImage, FileText } from "lucide-react";
+import useAuth from "../components/useAuth";
 
 export default function Page() {
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  useAuth();
 
   const exportRef = useRef(null);
   const [formData, setFormData] = useState({

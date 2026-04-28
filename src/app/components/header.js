@@ -142,7 +142,7 @@ export default function Header() {
           Contracts
         </Link> */}
         <Link href="/setup" className="hover:text-orange-500 transition-colors">
-          Setup
+          Settings
         </Link>
       </nav>
 

@@ -7,13 +7,14 @@ import { useRouter } from "next/navigation";
 import Select from "react-select";
 import axios from "redaxios";
 import { toast } from "react-toastify";
+import useAuth from "@/app/components/useAuth";
 
 export default function Page() {
   const companyRef = useRef(null);
   const categoryRef = useRef(null);
 
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
-
+  useAuth();
   const router = useRouter();
 
   const [companyname, setCompanyname] = useState([]);
@@ -170,7 +171,7 @@ export default function Page() {
           { params: { status: 1 } },
         );
         setLeadSource(res.data);
-      } catch {}
+      } catch { }
     };
 
     fetchSource();
@@ -185,7 +186,7 @@ export default function Page() {
           { params: { status: 1 } },
         );
         setLeadCategory(res.data);
-      } catch {}
+      } catch { }
     };
 
     fetchCategory();
@@ -199,7 +200,7 @@ export default function Page() {
           params: { status: 1 },
         });
         setCategory(res.data);
-      } catch {}
+      } catch { }
     };
 
     fetchProductCategory();
@@ -432,8 +433,8 @@ export default function Page() {
                     onChange={(selectedOptions) => {
                       const values = selectedOptions
                         ? selectedOptions
-                            .map((option) => option.value)
-                            .join(",")
+                          .map((option) => option.value)
+                          .join(",")
                         : "";
 
                       setFormData({ ...formData, assignee: values });
