@@ -5,9 +5,12 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 import { ChevronUpIcon, ChevronDownIcon } from "lucide-react";
 import Header from "@/app/components/header";
+import useAuth from "@/app/components/useAuth";
 
 export default function Page() {
 
+    useAuth();
+    
     const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
     const [formdata, setFormData] = useState({

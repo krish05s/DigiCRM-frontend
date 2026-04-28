@@ -7,16 +7,22 @@ import { useRouter } from "next/navigation";
 import Header from "../components/header";
 import { toast } from "react-toastify";
 import Link from "next/link";
+import useAuth from "../components/useAuth";
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 const API_base = `${API_BASE}/api/todos`;
+
 
 export default function Page() {
   const [todos, setTodos] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentTodo, setCurrentTodo] = useState({ id: null, title: "" });
+
+  useAuth();
+
+  const router = useRouter();
 
   // Helper to get axios config with JWT
   const getConfig = () => {
@@ -28,21 +34,7 @@ export default function Page() {
     return { headers: { Authorization: `Bearer ${token}` } };
   };
 
-  // Token Check
-  const [role, setRole] = useState("");
-  const router = useRouter();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-
-    if (!token) {
-      router.push("/");
-      toast.error("Please Login First");
-    } else {
-      setRole(role);
-    }
-  }, [router]);
 
   // Fetch all todos
   const fetchTodos = useCallback(async () => {

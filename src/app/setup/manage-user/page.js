@@ -6,6 +6,8 @@ import { toast } from "react-toastify";
 import { ChevronUpIcon, ChevronDownIcon } from "lucide-react";
 import Header from "@/app/components/header";
 import { useRouter } from "next/navigation";
+import useAuth from "@/app/components/useAuth";
+import { hasRoleAccess } from "@/utils/roleAccess";
 
 export default function Page() {
     const [users, setUsers] = useState([]);
@@ -25,6 +27,8 @@ export default function Page() {
     const [viewProduct, setViewProduct] = useState(null);
 
     const router = useRouter()
+
+    useAuth();
 
     const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -191,9 +195,11 @@ export default function Page() {
                     </div>
 
                     <div>
-                        <Link href="/setup/manage-user/add-user" className="bg-blue-800 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-900">
-                            + ADD USER
-                        </Link>
+                        {hasRoleAccess(["Super Admin"]) && (
+                            <Link href="/setup/manage-user/add-user" className="bg-blue-800 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-900">
+                                + ADD USER
+                            </Link>
+                        )}
                     </div>
                 </div>
 
@@ -270,9 +276,8 @@ export default function Page() {
                                     </th>
                                     <th className="py-3 px-4">Date of Joining
                                     </th>
-                                    <th className="py-3 px-4">Status
-                                    </th>
-                                    <th className="py-3 px-4">Action</th>
+                                    {hasRoleAccess(["Super Admin"]) && <th className="py-3 px-4">Status</th>}
+                                    {hasRoleAccess(["Super Admin"]) && <th className="py-3 px-4">Action</th>}
                                 </tr>
                             </thead>
 
@@ -307,29 +312,35 @@ export default function Page() {
                                             <td className="py-2 px-4">
                                                 {formatDate(item.date_of_joining)}
                                             </td>
-                                            <td className="py-2 px-4">
-                                                <label className="inline-flex items-center cursor-pointer">
-                                                    <input type="checkbox" className="sr-only" checked={item.status === 1} onChange={() => handleToggle(item.id, item.status)} />
-                                                    <div className={`relative w-12 h-6 rounded-full transition-all duration-300 ${item.status === 1 ? "bg-blue-800" : "bg-gray-300"}`}>
-                                                        <div className={`absolute top-1 left-1 w-4 h-3 bg-white rounded-full transition-all duration-300 ${item.status === 1 ? "translate-x-6" : "translate-x-1"}`}>
+                                            {/* Role Validation */}
+                                            {hasRoleAccess(["Super Admin"]) && (
+                                                <td className="py-2 px-4">
+                                                    <label className="inline-flex items-center cursor-pointer">
+                                                        <input type="checkbox" className="sr-only" checked={item.status === 1} onChange={() => handleToggle(item.id, item.status)} />
+                                                        <div className={`relative w-12 h-6 rounded-full transition-all duration-300 ${item.status === 1 ? "bg-blue-800" : "bg-gray-300"}`}>
+                                                            <div className={`absolute top-1 left-1 w-4 h-3 bg-white rounded-full transition-all duration-300 ${item.status === 1 ? "translate-x-6" : "translate-x-1"}`}>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </label>
-                                            </td>
-                                            <td className="py-2 px-4 text-lg">
-                                                <button type="button" onClick={() => {
-                                                    localStorage.setItem("edit_user_id", item.id); router.push("/setup/manage-user/view-user");
-                                                }} className="text-gray-400 text-xl hover:text-green-700 mx-1" title="View User">
-                                                    <i className="bi bi-eye"></i>
-                                                </button>
-                                                <button type="button"
-                                                    onClick={() => {
-                                                        localStorage.setItem("edit_user_id", item.id); router.push("/setup/manage-user/update-user");
-                                                    }} className="text-gray-400 hover:text-blue-500 text-lg mx-1" title="Edit User" >
-                                                    <i className="bi bi-pencil-square"></i>
-                                                </button>
+                                                    </label>
+                                                </td>
+                                            )}
+                                            {/* Role Validation */}
+                                            {hasRoleAccess(["Super Admin"]) && (
+                                                <td className="py-2 px-4 text-lg">
+                                                    <button type="button" onClick={() => {
+                                                        localStorage.setItem("edit_user_id", item.id); router.push("/setup/manage-user/view-user");
+                                                    }} className="text-gray-400 text-xl hover:text-green-700 mx-1" title="View User">
+                                                        <i className="bi bi-eye"></i>
+                                                    </button>
+                                                    <button type="button"
+                                                        onClick={() => {
+                                                            localStorage.setItem("edit_user_id", item.id); router.push("/setup/manage-user/update-user");
+                                                        }} className="text-gray-400 hover:text-blue-500 text-lg mx-1" title="Edit User" >
+                                                        <i className="bi bi-pencil-square"></i>
+                                                    </button>
 
-                                            </td>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))
                                 ) : (

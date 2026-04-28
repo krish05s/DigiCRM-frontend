@@ -7,10 +7,12 @@ import Header from "@/app/components/header";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import Select from "react-select";
+import useAuth from "@/app/components/useAuth";
 
 export default function Page() {
   const router = useRouter();
 
+  useAuth();
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
   const companyRef = useRef(null);
