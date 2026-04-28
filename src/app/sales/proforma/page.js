@@ -28,20 +28,25 @@ export default function ProformaPage() {
   const [recordsPerPage, setRecordsPerPage] = useState(25);
 
   // ── FILTER STATE ──────────────────────────────────────────
-  const [filters, setFilters] = useState({
-    customer_name: "",
-    assignee: "",
-    status: "",
-    quotation_no: "",
-    from_date: "",
-    to_date: "",
-    min_percentage: "",
-    max_percentage: "",
-    min_total: "",
-    max_total: "",
-  });
+ const [filters, setFilters] = useState({
+  customer_name: "",
+  assignee: "",
+  status: "",
+  quotation_no: "",
+  from_date: "",
+  to_date: "",
+  min_percentage: "",
+  max_percentage: "",
+  min_total: "",
+  max_total: "",
+});
 
-  const [assigneeList, setAssigneeList] = useState([]);
+const hasActiveFilters = Object.values(filters).some(
+  (value) => value !== "" && value !== null && value !== undefined
+);
+
+const [assigneeList, setAssigneeList] = useState([]);
+
 
   useAuth();
 
@@ -887,55 +892,7 @@ export default function ProformaPage() {
               </div>
             </div>
 
-            {/* MODAL FOOTER */}
-            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
-              <button
-                onClick={() => {
-                  setShowModal(false);
-                  setEditing(null);
-                  setPercentage("");
-                  setActiveIndex(null);
-                }}
-                className="px-5 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-100 transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={editing ? handleUpdate : handleSubmitFollowUp}
-                disabled={editing ? updateLoading : submitLoading}
-                className={`w-36 px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all shadow-md shadow-orange-200 flex items-center justify-center
-    ${
-      (editing ? updateLoading : submitLoading)
-        ? "bg-orange-400 cursor-not-allowed"
-        : "bg-orange-500 hover:bg-orange-600"
-    }`}
-              >
-                {(editing ? updateLoading : submitLoading) ? (
-                  <svg
-                    className="animate-spin h-4 w-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="white"
-                      strokeWidth="4"
-                      opacity="0.25"
-                    />
-                    <path
-                      fill="white"
-                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                    />
-                  </svg>
-                ) : editing ? (
-                  "Update"
-                ) : (
-                  "Add Follow-Up"
-                )}
-              </button>
-            </div>
+           
           </div>
         );
       })()}
