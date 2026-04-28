@@ -152,18 +152,136 @@ export default function AddCustomer() {
     } catch (err) {
       const status = err?.response?.status || err?.status;
 
-      if (status === 401) {
-        toast.warning("Access denied. Please login again.");
-      } else if (status === 409) {
-        toast.error("Customer name already exists");
-      } else {
-        toast.error("Failed to add customer");
-      }
-    } finally {
-      setIsSubmitting(false); // ✅ STOP
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleMobileChange = (value) => {
+        setFormData((prev) => ({ ...prev, mobile: value }));
+    };
+
+
+    const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const newErrors = {};
+    
+     if (!formData.customer_type) {
+        newErrors.customer_type = "Customer Type is required";
     }
-  };
-  // Fetch active designation for contact and set into dropdown
+    // Required field validation
+    if (!formData.company_name.trim()) {
+        newErrors.company_name = "Company Name is required";
+    }
+
+    if (!formData.customer_name.trim()) {
+        newErrors.customer_name = "Customer Name is required";
+    }
+
+    if (!formData.email.trim()) {
+        newErrors.email = "Email is required";
+    }
+
+    if (!formData.mobile.trim()) {
+        newErrors.mobile = "Mobile Number is required";
+    }
+
+    if (!formData.industry) {
+        newErrors.industry = "Industry is required";
+    }
+
+    if (!formData.address_type) {
+        newErrors.address_type = "Address Type is required";
+    }
+
+    if (!formData.address.trim()) {
+        newErrors.address = "Address is required";
+    }
+
+    if (!formData.contact_person.trim()) {
+        newErrors.contact_person = "Contact Person is required";
+    }
+
+    if (!formData.contact_number.trim()) {
+        newErrors.contact_number = "Contact Number is required";
+    }
+
+    if (!formData.contact_email.trim()) {
+        newErrors.contact_email = "Contact Email is required";
+    }
+
+    if (!formData.contact_designation) {
+        newErrors.contact_designation = "Contact Designation is required";
+    }
+
+    // Stop save if validation fails
+    if (Object.keys(newErrors).length > 0) {
+        toast.error("Please fill all required fields");
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            toast.error("User not logged in. Please login first");
+            return;
+        }
+
+        const dataToSend = {
+            ...formData,
+            website: formData.website === "https://" ? "" : formData.website
+        };
+
+        const res = await axios.post(
+            `${API_base}/add`,
+            dataToSend,
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        toast.success("Customer added successfully");
+
+        // redirect here
+        router.push("/customer-list");
+
+        setFormData({
+            customer_type: "",
+            company_name: "",
+            customer_name: "",
+            email: "",
+            mobile: "",
+            industry: "",
+            address_type: "",
+            address: "",
+            gst_type: "",
+            gst_number: "",
+            gst_state: "",
+            website: "https://",
+            remarks: "",
+            contact_person: "",
+            contact_number: "",
+            contact_email: "",
+            contact_designation: "",
+        });
+
+    } catch (err) {
+        const status = err?.response?.status || err?.status;
+
+        if (status === 401) {
+            toast.warning("Access denied. Please login again.");
+        } else if (status === 409) {
+            toast.error("Customer name already exists");
+        } else {
+            toast.error("Failed to add customer");
+        }
+    }
+};
 
   useEffect(() => {
     const fetchDesignations = async () => {
@@ -321,6 +439,173 @@ export default function AddCustomer() {
                                                 </option>
                                             ))}
                                         </select> */}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">
+                                            Customer Name *
+                                        </label>
+                                        <input type="text" name="customer_name" value={formData.customer_name} onChange={handleChange} placeholder="Enter customer name" className="w-full border rounded p-2" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Email*</label>
+                                        <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Enter email address" className="w-full border rounded p-2" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Mobile No.*</label>
+                                        <PhoneInput
+                                            country={"in"}
+                                            value={formData.mobile}
+                                            onChange={handleMobileChange}
+                                            inputStyle={{
+                                                width: "100%",
+                                                height: "38px",
+                                                borderRadius: "0.375rem",
+                                                border: "1px solid #d1d5db",
+                                            }}
+                                            buttonStyle={{
+                                                borderTopLeftRadius: "0.375rem",
+                                                borderBottomLeftRadius: "0.375rem",
+                                            }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Industry *</label>
+                                        <select name="industry" value={formData.industry} onChange={handleChange} className="w-full border rounded p-2">
+                                            <option value="">Select Industry*</option>
+                                            {industries.map((item, index) => (
+                                                <option key={item.id} value={item.id}>
+                                                    {item.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Address Details */}
+                                <div className="mb-4">
+                                    <h3 className="text-blue-900 font-medium mb-2">
+                                        Add Address Details
+                                    </h3>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                Address Type *
+                                            </label>
+                                            <select name="address_type" value={formData.address_type} onChange={handleChange} className="w-full border rounded p-2">
+                                                <option value="">Select Adress Type</option>
+                                                <option>Billing</option>
+                                                <option>Shipping</option>
+                                                <option>Corporate</option>
+                                                <option>Warehouse</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1"> Address * </label>
+                                            <textarea name="address" value={formData.address} onChange={handleChange} placeholder="Enter address" className="w-full border rounded p-2"></textarea>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                {/* GST Details */}
+                                <div className="mb-4">
+                                    <h3 className="text-blue-900 font-medium mb-2">Add GST Details</h3>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">GST Type</label>
+                                            <select name="gst_type" value={formData.gst_type} onChange={handleChange} className="w-full border rounded p-2">
+                                                <option value="">Select GST Type</option>
+                                                <option>Registered Regular</option>
+                                                <option>Registered Composite</option>
+                                                <option>Unregistered / Consumer</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                GST Number
+                                            </label>
+                                            <input type="text" name="gst_number" value={formData.gst_number} onChange={handleChange} placeholder="Enter GST number" className="w-full border rounded p-2" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">State</label>
+                                            <input type="text" name="gst_state" value={formData.gst_state} onChange={handleChange} placeholder="Enter State" className="w-full border rounded p-2" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Additional Details */}
+                                <div className="mb-6">
+                                    <h3 className="text-blue-900 font-medium mb-2">Add more details</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Website</label>
+                                            <input type="text" name="website" ref={websiteRef} value={formData.website} onFocus={handleFocus} onBlur={handleBlur} onChange={handleChange} className="w-full border rounded p-2" />
+                                            {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Remarks</label>
+                                            <textarea name="remarks" value={formData.remarks} onChange={handleChange} placeholder="Enter remarks" className="w-full border rounded p-2"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Buttons */}
+                                <div className="flex justify-end gap-3">
+                                    <button type="button" className="border px-4 py-2 rounded bg-gray-200 hover:cursor-not-allowed" disabled>Previous</button>
+                                    <button type="button" onClick={() => setActiveTab("contact")} className="bg-blue-900 hover:bg-blue-950 cursor-pointer text-white px-4 py-2 rounded">
+                                        Next
+                                    </button>
+                                    <button type="button" onClick={() => router.push("/customer-list")} className="border px-4 py-2 rounded hover:bg-gray-200 cursor-pointer">Cancel</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Contact Details Section */}
+                        {activeTab === "contact" && (
+                            <div className="bg-white shadow rounded-2xl p-6">
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">
+                                            Contact Person*
+                                        </label>
+                                        <input type="text" name="contact_person" value={formData.contact_person} onChange={handleChange} placeholder="Enter contact person name" className="w-full border rounded p-2" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">
+                                            Contact Number*
+                                        </label>
+                                        <input type="text" name="contact_number" value={formData.contact_number} onChange={handleChange} placeholder="Enter contact number" className="w-full border rounded p-2" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Email*</label>
+                                        <input type="email" name="contact_email" value={formData.contact_email} onChange={handleChange} placeholder="Enter email" className="w-full border rounded p-2" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Contact Designation*</label>
+                                        <select name="contact_designation" value={formData.contact_designation} onChange={handleChange} className="w-full border rounded p-2">
+                                            <option value="">Select Contact Designation</option>
+                                            {designations.map((item) => (
+                                                <option key={item.id} value={item.id}>
+                                                    {item.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Buttons */}
+                                <div className="flex justify-end gap-3">
+                                    <button type="button" onClick={() => setActiveTab("customer")} className="border px-4 py-2 rounded cursor-pointer hover:bg-gray-200">
+                                        Previous
+                                    </button>
+                                    <button type="submit" className="bg-blue-900 text-white px-4 py-2 rounded cursor-pointer">
+                                        Save
+                                    </button>
+                                    <button type="button" onClick={() => router.push("/customer-list")} className="border px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 cursor-pointer">Cancel</button>
+                                </div>
+                            </div>
+                        )}
+                    </form>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">

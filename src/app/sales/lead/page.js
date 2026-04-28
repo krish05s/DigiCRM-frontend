@@ -1571,21 +1571,12 @@ export default function Page() {
               <button
                 onClick={handleSubmit}
                 disabled={btnLoading}
-<<<<<<< Updated upstream
-                className={`px-6 py-2 text-sm font-semibold text-white rounded-xl transition-all shadow-md shadow-orange-200 flex items-center gap-2
-                ${
-                  btnLoading
-                    ? "bg-orange-400 cursor-not-allowed"
-                    : "bg-orange-500 hover:bg-orange-600"
-                }`}
-=======
                 className={`px-6 py-2 text-sm font-semibold text-white rounded-xl transition-all shadow-md shadow-orange-200 flex items-center justify-center gap-2
   ${
     btnLoading
       ? "bg-orange-400 cursor-not-allowed"
       : "bg-orange-500 hover:bg-orange-600"
   }`}
->>>>>>> Stashed changes
               >
                 {btnLoading ? (
                   <svg
@@ -1917,21 +1908,12 @@ export default function Page() {
               <button
                 onClick={handleUpdate}
                 disabled={updateLoading}
-<<<<<<< Updated upstream
-                className={`px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all shadow-md shadow-orange-200 flex items-center gap-2
-                ${
-                  updateLoading
-                    ? "bg-orange-400 cursor-not-allowed"
-                    : "bg-orange-500 hover:bg-orange-600"
-                }`}
-=======
                 className={`w-36 px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all shadow-md shadow-orange-200 flex items-center justify-center gap-2
   ${
     updateLoading
       ? "bg-orange-400 cursor-not-allowed"
       : "bg-orange-500 hover:bg-orange-600"
   }`}
->>>>>>> Stashed changes
               >
                 {updateLoading ? (
                   <svg
