@@ -25,6 +25,8 @@ export default function Page() {
   const [category, setCategory] = useState([]);
   const [productList, setProductList] = useState([]);
   const [asignee, setAsignee] = useState([]);
+  // Add this state at the top with other states:
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     company_name: "",
     customer_name: "",
@@ -51,25 +53,52 @@ export default function Page() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    try {
+    // ⏱️ Auto-stop loader after 1 minute
+    const timeout = setTimeout(() => {
+      setIsSubmitting(false);
+      toast.error("Request timed out. Please try again.");
+    }, 60000); // 60 seconds = 1 minute
 
-      const res = await axios.post(`${API_BASE}/api/lead/insert`,
-        formData
-      );
+    try {
+      setIsSubmitting(true);
+
+      const res = await axios.post(`${API_BASE}/api/lead/insert`, formData);
 
       if (res.status === 200 || res.status === 201) {
         toast.success("Lead added successfully!");
-
-        router.push("/sales/lead");
-
+        clearTimeout(timeout); // ✅ Stop timeout
+        setIsSubmitting(false); // ✅ Stop loader
         resetForm();
+        router.push("/sales/lead");
       }
     } catch (err) {
       console.error(err);
-
       toast.error("Failed to add lead");
+    } finally {
+      clearTimeout(timeout); // ✅ Always clear timeout
+      setIsSubmitting(false); // ✅ Always stop loader
     }
   };
+
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+
+  //   try {
+  //     const res = await axios.post(`${API_BASE}/api/lead/insert`, formData);
+
+  //     if (res.status === 200 || res.status === 201) {
+  //       toast.success("Lead added successfully!");
+
+  //       router.push("/sales/lead");
+
+  //       resetForm();
+  //     }
+  //   } catch (err) {
+  //     console.error(err);
+
+  //     toast.error("Failed to add lead");
+  //   }
+  // };
 
   const resetForm = () => {
     setFormData({
@@ -133,8 +162,9 @@ export default function Page() {
   useEffect(() => {
     const fetchSource = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/api/inquiry-lead-source/read`,
-          { params: { status: 1 } }
+        const res = await axios.get(
+          `${API_BASE}/api/inquiry-lead-source/read`,
+          { params: { status: 1 } },
         );
         setLeadSource(res.data);
       } catch {}
@@ -147,8 +177,9 @@ export default function Page() {
   useEffect(() => {
     const fetchCategory = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/api/inquiry-lead-category/read`,
-          { params: { status: 1 } }
+        const res = await axios.get(
+          `${API_BASE}/api/inquiry-lead-category/read`,
+          { params: { status: 1 } },
         );
         setLeadCategory(res.data);
       } catch {}
@@ -161,9 +192,9 @@ export default function Page() {
   useEffect(() => {
     const fetchProductCategory = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/api/product-category/read`,
-          { params: { status: 1 } }
-        );
+        const res = await axios.get(`${API_BASE}/api/product-category/read`, {
+          params: { status: 1 },
+        });
         setCategory(res.data);
       } catch {}
     };
@@ -179,13 +210,11 @@ export default function Page() {
 
     const fetchProducts = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/api/product-master/read`,
-          {
-            params: {
-              search2: formData.product_category,
-            },
+        const res = await axios.get(`${API_BASE}/api/product-master/read`, {
+          params: {
+            search2: formData.product_category,
           },
-        );
+        });
         setProductList(res.data);
       } catch {
         setProductList([]);
@@ -198,11 +227,9 @@ export default function Page() {
   useEffect(() => {
     const fetchAssignee = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/api/manage-user/asignee`,
-          {
-            params: { status: 1 },
-          },
-        );
+        const res = await axios.get(`${API_BASE}/api/manage-user/asignee`, {
+          params: { status: 1 },
+        });
 
         const data = res.data.data || res.data || [];
 
@@ -277,15 +304,26 @@ export default function Page() {
               <label className="block mb-1 text-sm font-medium text-gray-600">
                 Company Name *
               </label>
-              <input name="company_name" value={formData.company_name} placeholder="Company Name" onChange={handleChange}  className="w-full border border-gray-200 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-300 bg-white" />
+              <input
+                name="company_name"
+                value={formData.company_name}
+                placeholder="Company Name"
+                onChange={handleChange}
+                className="w-full border border-gray-200 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-300 bg-white"
+              />
             </div>
 
             <div>
               <label className="block mb-1 text-sm font-medium text-gray-600">
                 Customer Name *
               </label>
-              <input name="customer_name" value={formData.customer_name} placeholder="Customer Name" onChange={handleChange} className="w-full border border-gray-200 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-300 bg-white" />
-  
+              <input
+                name="customer_name"
+                value={formData.customer_name}
+                placeholder="Customer Name"
+                onChange={handleChange}
+                className="w-full border border-gray-200 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-300 bg-white"
+              />
             </div>
 
             <div>
@@ -380,7 +418,6 @@ export default function Page() {
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
-                
                 className="w-full border border-gray-200 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-300 bg-white"
               >
                 <option value="">-- Select --</option>
@@ -395,9 +432,9 @@ export default function Page() {
                 Assignee *
               </label>
 
-              <Select isMulti
+              <Select
+                isMulti
                 placeholder="-- Select --"
-                
                 instanceId="assignee-select"
                 options={asignee}
                 value={asignee.filter((option) =>
@@ -526,9 +563,36 @@ export default function Page() {
             </button>
             <button
               type="submit"
-              className="px-6 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition"
+              disabled={isSubmitting}
+              className={`px-6 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition flex items-center gap-2
+    ${isSubmitting ? "opacity-70 cursor-not-allowed" : ""}
+  `}
             >
-              Save
+              {isSubmitting ? (
+                <>
+                  <svg
+                    className="animate-spin h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="white"
+                      strokeWidth="4"
+                      opacity="0.25"
+                    />
+                    <path
+                      fill="white"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    />
+                  </svg>
+                  {/* ❌ Removed "Processing..." text */}
+                </>
+              ) : (
+                "Save"
+              )}
             </button>
           </div>
         </div>

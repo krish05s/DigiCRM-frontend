@@ -23,8 +23,10 @@ export default function AddCustomer() {
   const [companyname, setCompanyname] = useState([]);
   const [showaddressModal, setShowAddressModal] = useState(false);
   const [showcontactsModal, setShowContactsModal] = useState(false);
-
+const [isSavingAddress, setIsSavingAddress] = useState(false);
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingContact, setIsSavingContact] = useState(false);
 
   const [gstDetails, setGstDetails] = useState([]);
 
@@ -159,45 +161,48 @@ export default function AddCustomer() {
   };
 
   // update data in customer_data table
+const handleSubmit = async (e) => {
+  if (e) e.preventDefault();
 
-  const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
+  if (!customerId) {
+    toast.error("Customer ID not found");
+    return;
+  }
 
-    if (!customerId) {
-      toast.error("Customer ID not found");
-      return;
-    }
+  try {
+    setIsSubmitting(true); // ✅ START
 
-    try {
-      const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-      const payload = {
-        company_name: formData.company_name,
-        customer_type: formData.customer_type,
-        customer_name: formData.customer_name,
-        email: formData.email,
-        mobile: formData.mobile,
-        industry: formData.industry,
-        website: formData.website,
-        remarks: formData.remarks,
-      };
+    const payload = {
+      company_name: formData.company_name,
+      customer_type: formData.customer_type,
+      customer_name: formData.customer_name,
+      email: formData.email,
+      mobile: formData.mobile,
+      industry: formData.industry,
+      website: formData.website,
+      remarks: formData.remarks,
+    };
 
-      const res = await axios.put(
-        `${API_BASE}/api/customers/customer-data/${customerId}`,
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+    const res = await axios.put(
+      `${API_BASE}/api/customers/customer-data/${customerId}`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      },
+    );
 
-      toast.success(res.data.message || "Customer updated successfully");
-    } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || "Failed to update customer");
-    }
-  };
+    toast.success(res.data.message || "Customer updated successfully");
+  } catch (err) {
+    console.error(err);
+    toast.error(err.response?.data?.message || "Failed to update customer");
+  } finally {
+    setIsSubmitting(false); // ✅ STOP
+  }
+};
 
   // Existing Data Render Into Form
   useEffect(() => {
@@ -344,44 +349,42 @@ export default function AddCustomer() {
   };
 
   // saveAddress Function for insert and update
-  const saveAddress = async () => {
-    try {
-      const token = localStorage.getItem("token");
+ const saveAddress = async () => {
+   try {
+     setIsSavingAddress(true); // ✅ START
 
-      if (editAddressId) {
-        // UPDATE
-        await axios.put(
-          `${API_BASE}/api/customers/customer-address/${editAddressId}`,
-          addressForm,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
+     const token = localStorage.getItem("token");
 
-        toast.success("Address updated");
-      } else {
-        // INSERT
-        await axios.post(
-          `${API_BASE}/api/customers/customer-address`,
-          {
-            customer_id: customerId,
-            ...addressForm,
-          },
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
+     if (editAddressId) {
+       await axios.put(
+         `${API_BASE}/api/customers/customer-address/${editAddressId}`,
+         addressForm,
+         { headers: { Authorization: `Bearer ${token}` } },
+       );
+       toast.success("Address updated");
+     } else {
+       await axios.post(
+         `${API_BASE}/api/customers/customer-address`,
+         {
+           customer_id: customerId,
+           ...addressForm,
+         },
+         { headers: { Authorization: `Bearer ${token}` } },
+       );
+       toast.success("Address added");
+     }
 
-        toast.success("Address added");
-      }
-
-      setShowAddressModal(false);
-      setAddressForm({ address_type: "", address: "" });
-      setEditAddressId(null);
-
-      // reload list
-      fetchAddresses();
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to save address");
-    }
-  };
+     setShowAddressModal(false);
+     setAddressForm({ address_type: "", address: "" });
+     setEditAddressId(null);
+     fetchAddresses();
+   } catch (err) {
+     console.error(err);
+     toast.error("Failed to save address");
+   } finally {
+     setIsSavingAddress(false); // ✅ STOP
+   }
+ };
 
   // Edit Address Data Rendering and collect id of row
   const editAddress = (item) => {
@@ -462,10 +465,11 @@ export default function AddCustomer() {
 
   const saveContact = async () => {
     try {
+      setIsSavingContact(true); // ✅ START
+
       const token = localStorage.getItem("token");
 
       if (editContactId) {
-        // UPDATE
         await axios.put(
           `${API_BASE}/api/customers/customer-contacts/${editContactId}`,
           {
@@ -475,10 +479,8 @@ export default function AddCustomer() {
           },
           { headers: { Authorization: `Bearer ${token}` } },
         );
-
         toast.success("Contact updated");
       } else {
-        // INSERT
         await axios.post(
           `${API_BASE}/api/customers/customer-contacts`,
           {
@@ -489,7 +491,6 @@ export default function AddCustomer() {
           },
           { headers: { Authorization: `Bearer ${token}` } },
         );
-
         toast.success("Contact added");
       }
 
@@ -501,14 +502,14 @@ export default function AddCustomer() {
         contact_designation: "",
       });
       setEditContactId(null);
-
       fetchContacts();
     } catch (err) {
       console.error(err);
       toast.error("Failed to save contact");
+    } finally {
+      setIsSavingContact(false); // ✅ STOP
     }
   };
-
   // Edit contacts Data Rendering and collect id of row
 
   const editContact = (item) => {
@@ -654,7 +655,13 @@ export default function AddCustomer() {
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
                     Company Name <span className="text-red-400">*</span>
                   </label>
-                  <input name="company_name" className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all" placeholder="Enter Company Name" value={formData.company_name} onChange={handleChange} />
+                  <input
+                    name="company_name"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all"
+                    placeholder="Enter Company Name"
+                    value={formData.company_name}
+                    onChange={handleChange}
+                  />
                   {/* <select
                     name="company_name"
                     value={formData.company_name}
@@ -880,13 +887,39 @@ export default function AddCustomer() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
+                  disabled={isSubmitting}
                   onClick={async () => {
                     await handleSubmit();
                     await saveGstDetails();
                   }}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg hover:cursor-pointer transition-all shadow-sm"
+                  className={`w-40 flex items-center justify-center gap-2 px-6 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg transition-all shadow-sm
+    ${isSubmitting ? "opacity-70 cursor-not-allowed" : "hover:bg-orange-600 hover:cursor-pointer"}
+  `}
                 >
-                  <i className="bi bi-check2"></i> Save Changes
+                  {isSubmitting ? (
+                    <svg
+                      className="animate-spin h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="4"
+                        opacity="0.25"
+                      />
+                      <path
+                        fill="white"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      />
+                    </svg>
+                  ) : (
+                    <>
+                      <i className="bi bi-check2"></i> Save Changes
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -918,10 +951,34 @@ export default function AddCustomer() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowAddressModal(true)}
-                  className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:cursor-pointer transition-all shadow-sm"
+                  onClick={saveAddress}
+                  disabled={isSavingAddress}
+                  className={`w-36 flex items-center justify-center px-5 py-2 text-sm font-semibold text-white bg-orange-500 rounded-lg transition-all
+    ${isSavingAddress ? "opacity-70 cursor-not-allowed" : "hover:bg-orange-600 hover:cursor-pointer"}
+  `}
                 >
-                  <i className="bi bi-plus-lg"></i> Add Address
+                  {isSavingAddress ? (
+                    <svg
+                      className="animate-spin h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="4"
+                        opacity="0.25"
+                      />
+                      <path
+                        fill="white"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      />
+                    </svg>
+                  ) : (
+                    "Save Address"
+                  )}
                 </button>
               </div>
 
@@ -1058,9 +1115,33 @@ export default function AddCustomer() {
                       <button
                         type="button"
                         onClick={saveAddress}
-                        className="px-5 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg hover:cursor-pointer transition-all"
+                        disabled={isSavingAddress}
+                        className={`w-36 flex items-center justify-center px-5 py-2 text-sm font-semibold text-white bg-orange-500 rounded-lg transition-all
+    ${isSavingAddress ? "opacity-70 cursor-not-allowed" : "hover:bg-orange-600 hover:cursor-pointer"}
+  `}
                       >
-                        Save Address
+                        {isSavingAddress ? (
+                          <svg
+                            className="animate-spin h-4 w-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                          >
+                            <circle
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="white"
+                              strokeWidth="4"
+                              opacity="0.25"
+                            />
+                            <path
+                              fill="white"
+                              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                            />
+                          </svg>
+                        ) : (
+                          "Save Address"
+                        )}
                       </button>
                     </div>
                   </div>
@@ -1276,9 +1357,35 @@ export default function AddCustomer() {
                       <button
                         type="button"
                         onClick={saveContact}
-                        className="px-5 py-2 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 rounded-lg hover:cursor-pointer transition-all"
+                        disabled={isSavingContact}
+                        className={`w-36 flex items-center justify-center px-5 py-2 text-sm font-semibold text-white bg-orange-500 rounded-lg transition-all
+    ${isSavingContact ? "opacity-70 cursor-not-allowed" : "hover:bg-orange-600 hover:cursor-pointer"}
+  `}
                       >
-                        Save Contact
+                        {isSavingContact ? (
+                          <svg
+                            className="animate-spin h-4 w-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                          >
+                            <circle
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="white"
+                              strokeWidth="4"
+                              opacity="0.25"
+                            />
+                            <path
+                              fill="white"
+                              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                            />
+                          </svg>
+                        ) : editContactId ? (
+                          "Update Contact"
+                        ) : (
+                          "Save Contact"
+                        )}
                       </button>
                     </div>
                   </div>
