@@ -104,69 +104,125 @@ export default function AddCustomer() {
 
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+    e.preventDefault();
 
-        try {
-            const token = localStorage.getItem("token");
+    const newErrors = {};
+    
+     if (!formData.customer_type) {
+        newErrors.customer_type = "Customer Type is required";
+    }
+    // Required field validation
+    if (!formData.company_name.trim()) {
+        newErrors.company_name = "Company Name is required";
+    }
 
-            if (!token) {
-                toast.error("User not logged in. Please login first")
-                return;
-            }
+    if (!formData.customer_name.trim()) {
+        newErrors.customer_name = "Customer Name is required";
+    }
 
-            // if user didn't enter in website text so it can't store https://
-            const dataToSend = {
-                ...formData,
-                website: formData.website === "https://" ? "" : formData.website
-            };
+    if (!formData.email.trim()) {
+        newErrors.email = "Email is required";
+    }
 
+    if (!formData.mobile.trim()) {
+        newErrors.mobile = "Mobile Number is required";
+    }
 
-            const res = await axios.post(`${API_base}/add`, dataToSend, {
+    if (!formData.industry) {
+        newErrors.industry = "Industry is required";
+    }
+
+    if (!formData.address_type) {
+        newErrors.address_type = "Address Type is required";
+    }
+
+    if (!formData.address.trim()) {
+        newErrors.address = "Address is required";
+    }
+
+    if (!formData.contact_person.trim()) {
+        newErrors.contact_person = "Contact Person is required";
+    }
+
+    if (!formData.contact_number.trim()) {
+        newErrors.contact_number = "Contact Number is required";
+    }
+
+    if (!formData.contact_email.trim()) {
+        newErrors.contact_email = "Contact Email is required";
+    }
+
+    if (!formData.contact_designation) {
+        newErrors.contact_designation = "Contact Designation is required";
+    }
+
+    // Stop save if validation fails
+    if (Object.keys(newErrors).length > 0) {
+        toast.error("Please fill all required fields");
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+            toast.error("User not logged in. Please login first");
+            return;
+        }
+
+        const dataToSend = {
+            ...formData,
+            website: formData.website === "https://" ? "" : formData.website
+        };
+
+        const res = await axios.post(
+            `${API_base}/add`,
+            dataToSend,
+            {
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`,
-                }
-            })
-
-            toast.success("Customer added successfully")
-            console.log("DATA SENT TO BACKEND:", dataToSend);
-            console.log("Response:", res.data)
-
-            // Reset Form
-            setFormData({
-                customer_type: "",
-                company_name: "",
-                customer_code: "",
-                customer_name: "",
-                email: "",
-                mobile: "",
-                industry: "",
-                address_type: "",
-                address: "",
-                gst_type: "",
-                gst_number: "",
-                gst_state: "",
-                website: "https://",
-                remarks: "",
-                contact_person: "",
-                contact_number: "",
-                contact_email: "",
-                contact_designation: "",
-            })
-        } catch (err) {
-            const status = err?.response?.status || err?.status;
-
-            if (status === 401) {
-                toast.warning("Access denied. Please login again.");
+                    Authorization: `Bearer ${token}`,
+                },
             }
-            else if (status === 409) {
-                toast.error("Customer name already exists");
-            }
-            else {
-                toast.error("Failed to add customer");
-            }
+        );
+
+        toast.success("Customer added successfully");
+
+        // redirect here
+        router.push("/customer-list");
+
+        setFormData({
+            customer_type: "",
+            company_name: "",
+            customer_name: "",
+            email: "",
+            mobile: "",
+            industry: "",
+            address_type: "",
+            address: "",
+            gst_type: "",
+            gst_number: "",
+            gst_state: "",
+            website: "https://",
+            remarks: "",
+            contact_person: "",
+            contact_number: "",
+            contact_email: "",
+            contact_designation: "",
+        });
+
+    } catch (err) {
+        const status = err?.response?.status || err?.status;
+
+        if (status === 401) {
+            toast.warning("Access denied. Please login again.");
+        } else if (status === 409) {
+            toast.error("Customer name already exists");
+        } else {
+            toast.error("Failed to add customer");
         }
     }
+};
 
         // Fetch active designation for contact and set into dropdown
 
@@ -289,11 +345,11 @@ export default function AddCustomer() {
                                         <input type="text" name="customer_name" value={formData.customer_name} onChange={handleChange} placeholder="Enter customer name" className="w-full border rounded p-2" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium mb-1">Email</label>
+                                        <label className="block text-sm font-medium mb-1">Email*</label>
                                         <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Enter email address" className="w-full border rounded p-2" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium mb-1">Mobile No.</label>
+                                        <label className="block text-sm font-medium mb-1">Mobile No.*</label>
                                         <PhoneInput
                                             country={"in"}
                                             value={formData.mobile}
@@ -313,7 +369,7 @@ export default function AddCustomer() {
                                     <div>
                                         <label className="block text-sm font-medium mb-1">Industry *</label>
                                         <select name="industry" value={formData.industry} onChange={handleChange} className="w-full border rounded p-2">
-                                            <option value="">Select Industry</option>
+                                            <option value="">Select Industry*</option>
                                             {industries.map((item, index) => (
                                                 <option key={item.id} value={item.id}>
                                                     {item.name}
@@ -408,22 +464,22 @@ export default function AddCustomer() {
                                 <div className="grid grid-cols-2 gap-4 mb-4">
                                     <div>
                                         <label className="block text-sm font-medium mb-1">
-                                            Contact Person
+                                            Contact Person*
                                         </label>
                                         <input type="text" name="contact_person" value={formData.contact_person} onChange={handleChange} placeholder="Enter contact person name" className="w-full border rounded p-2" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium mb-1">
-                                            Contact Number
+                                            Contact Number*
                                         </label>
                                         <input type="text" name="contact_number" value={formData.contact_number} onChange={handleChange} placeholder="Enter contact number" className="w-full border rounded p-2" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium mb-1">Email</label>
+                                        <label className="block text-sm font-medium mb-1">Email*</label>
                                         <input type="email" name="contact_email" value={formData.contact_email} onChange={handleChange} placeholder="Enter email" className="w-full border rounded p-2" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium mb-1">Contact Designation</label>
+                                        <label className="block text-sm font-medium mb-1">Contact Designation*</label>
                                         <select name="contact_designation" value={formData.contact_designation} onChange={handleChange} className="w-full border rounded p-2">
                                             <option value="">Select Contact Designation</option>
                                             {designations.map((item) => (

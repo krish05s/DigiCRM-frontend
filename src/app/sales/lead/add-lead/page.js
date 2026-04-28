@@ -36,7 +36,7 @@ export default function Page() {
     category: "",
     description: "",
   });
-
+const [errors, setErrors] = useState({});
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -47,27 +47,56 @@ export default function Page() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    try {
+  const newErrors = {};
 
-      const res = await axios.post(`${API_BASE}/api/lead/insert`,
-        formData
-      );
+  // Required fields validation
+  if (!formData.customer_name.trim()) {
+    newErrors.customer_name = "Customer Name is required";
+  }
 
-      if (res.status === 200 || res.status === 201) {
-        toast.success("Lead added successfully!");
+  if (!formData.lead_title.trim()) {
+    newErrors.lead_title = "Lead Title is required";
+  }
 
-        router.push("/sales/lead");
+  if (!formData.product_category) {
+    newErrors.product_category = "Product Category is required";
+  }
 
-        resetForm();
-      }
-    } catch (err) {
-      console.error(err);
+  if (!formData.product_name) {
+    newErrors.product_name = "Product Name is required";
+  }
 
-      toast.error("Failed to add lead");
+  if (!formData.assignee.trim()) {
+    newErrors.assignee = "Assignee is required";
+  }
+
+  setErrors(newErrors);
+
+  // Stop submit if validation fails
+  if (Object.keys(newErrors).length > 0) {
+    toast.error("Please fill all required fields");
+    return;
+  }
+
+  try {
+    const res = await axios.post(
+      `${API_BASE}/api/lead/insert`,
+      formData
+    );
+
+    if (res.status === 200 || res.status === 201) {
+      toast.success("Lead added successfully!");
+      router.push("/sales/lead");
+      resetForm();
     }
-  };
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to add lead");
+  }
+};
+
 
   const resetForm = () => {
     setFormData({
@@ -273,7 +302,7 @@ export default function Page() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-gray-700">
             <div>
               <label className="block mb-1 text-sm font-medium text-gray-600">
-                Company Name *
+                Company Name 
               </label>
               <input name="company_name" value={formData.company_name} placeholder="Company Name" onChange={handleChange}  className="w-full border border-gray-200 rounded-md px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-300 bg-white" />
             </div>
@@ -301,7 +330,7 @@ export default function Page() {
 
             <div>
               <label className="block mb-1 text-sm font-medium text-gray-600">
-                Source *
+                Source 
               </label>
               <select
                 name="source"
@@ -353,7 +382,7 @@ export default function Page() {
 
             <div>
               <label className="block mb-1 text-sm font-medium text-gray-600">
-                Product Name
+                Product Name*
               </label>
               <select
                 name="product_name"
@@ -372,7 +401,7 @@ export default function Page() {
 
             <div>
               <label className="block mb-1 text-sm font-medium text-gray-600">
-                Priority *
+                Priority 
               </label>
               <select
                 name="priority"
