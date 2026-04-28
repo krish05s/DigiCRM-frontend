@@ -325,7 +325,7 @@ export default function ProformaPage() {
             <div className="relative" ref={exportRef}>
               <button
                 onClick={() => setShowExportMenu((prev) => !prev)}
-                className="flex items-center gap-2 bg-white border border-gray-200 hover:border-orange-300 hover:bg-orange-50 text-gray-600 hover:text-orange-600 px-4 py-2 rounded-xl text-sm font-semibold tracking-wide transition-all shadow-sm"
+                className="flex items-center gap-2  bg-orange-50 text-orange-500 px-4 py-2 rounded-sm text-sm font-semibold tracking-wide transition-all shadow-sm"
               >
                 <i className="bi bi-download text-base"></i>
                 Export
@@ -337,12 +337,12 @@ export default function ProformaPage() {
               </button>
 
               {showExportMenu && (
-                <div className="absolute right-0 top-full mt-1.5 w-44 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
+                <div className="absolute right-0 top-full mt-1.5 w-44 bg-white rounded-sm shadow-lg border border-gray-100 overflow-hidden z-50">
                   <button
                     onClick={exportToExcel}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-all"
                   >
-                    <div className="w-7 h-7 rounded-lg bg-green-100 flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-sm  flex items-center justify-center">
                       <i className="bi bi-file-earmark-excel text-green-600 text-sm"></i>
                     </div>
                     Export Excel
@@ -352,7 +352,7 @@ export default function ProformaPage() {
                     onClick={exportToPDF}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all"
                   >
-                    <div className="w-7 h-7 rounded-lg bg-red-100 flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-sm flex items-center justify-center">
                       <i className="bi bi-file-earmark-pdf text-red-600 text-sm"></i>
                     </div>
                     Export PDF
@@ -365,12 +365,14 @@ export default function ProformaPage() {
 
         {/* TABLE */}
         <div className="bg-white rounded-sm border border-gray-100 mx-7 py-2">
-          <div className="p-4">
+          <div className="py-1">
             {loading ? (
               <div className="text-center py-10 text-gray-400">Loading...</div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              // <div className="overflow-x-auto">
+              //   <table className="w-full text-sm custom-scroll">
+                 <div className="overflow-x-auto overflow-y-scroll max-h-[500px] custom-scroll " style={{overflowX: 'scroll'}}>
+                <table className="w-full text-sm ">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
                       <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">

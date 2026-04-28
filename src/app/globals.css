@@ -62,3 +62,9 @@ html, body {
 .custom-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* scrolbar */
+.custom-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 transparent;
+}

@@ -260,8 +260,12 @@ export default function CustomerList() {
 
         <form className="p-2 w-8xl mx-3">
           <div className="bg-white shadow rounded-sm p-6">
-            <div className="overflow-x-auto">
-              <table className="min-w-full w-8xl border border-gray-200 text-sm text-left">
+            {/* <div className="overflow-x-auto">
+              <table className="min-w-full w-8xl border border-gray-200 text-sm text-left custom-scroll"> */}
+
+     <div className="overflow-x-auto overflow-y-scroll max-h-[500px] custom-scroll " style={{overflowX: 'scroll'}}>
+                <table className="w-full text-sm w-8xl border border-gray-200 text-left custom-scroll">
+                
                 <thead className="bg-gray-50  border-b border-gray-200  text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   <tr>
                     <th className="px-3 py-2 text-center">#</th>

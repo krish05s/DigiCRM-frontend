@@ -604,7 +604,7 @@ export default function AddCustomer() {
 
           {/* ── UPDATE CUSTOMER TAB ── */}
           {activeTab === "update-customer" && (
-            <form className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5">
+            <form className="bg-white rounded-sm border border-gray-200 shadow-sm p-6 space-y-5 max-w-[800px]">
               {/* Customer Type */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
@@ -616,7 +616,7 @@ export default function AddCustomer() {
                       key={type}
                       className={`flex items-center gap-2.5 px-4 py-2.5 rounded-lg border-2 cursor-pointer transition-all ${
                         formData.customer_type === type
-                          ? "border-orange-400 bg-orange-50 text-orange-600"
+                          ? "border-orange-400 bg-orange-50 text-orange-500"
                           : "border-gray-200 text-gray-600 hover:border-gray-300"
                       }`}
                     >
@@ -646,12 +646,14 @@ export default function AddCustomer() {
               </div>
 
               {/* Row 1: Company Name, Customer Name, Mobile No */}
-              <div className="grid grid-cols-3 gap-5">
+              <div className="grid grid-cols-2 gap-2  max-h-[90vh] custom-scroll">
+              
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                    Company Name <span className="text-red-400">*</span>
+                    Company Name 
+                    {/* <span className="text-red-400">*</span> */}
                   </label>
-                  <input name="company_name" className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all" placeholder="Enter Company Name" value={formData.company_name} onChange={handleChange} />
+                  <input name="company_name" className="w-full bg-gray-50 border border-gray-200 rounded-sm px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-200  transition-all" placeholder="Enter Company Name" value={formData.company_name} onChange={handleChange} />
                   {/* <select
                     name="company_name"
                     value={formData.company_name}
@@ -668,7 +670,8 @@ export default function AddCustomer() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                    Customer Name <span className="text-red-400">*</span>
+                    Customer Name
+                     {/* <span className="text-red-400">*</span> */}
                   </label>
                   <input
                     type="text"
@@ -676,7 +679,7 @@ export default function AddCustomer() {
                     placeholder="Enter customer name"
                     value={formData.customer_name}
                     onChange={handleChange}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-sm px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-200 transition-all"
                   />
                 </div>
                 <div>
@@ -695,6 +698,7 @@ export default function AddCustomer() {
                       backgroundColor: "#f9fafb",
                       fontSize: "14px",
                       color: "#374151",
+                      className: "focus:outline-none focus:ring-1 focus:ring-orange-200 transition-all",
                     }}
                     buttonStyle={{
                       borderTopLeftRadius: "0.5rem",
@@ -718,7 +722,7 @@ export default function AddCustomer() {
                     placeholder="Enter email address"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-sm px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-200 transition-all"
                   />
                 </div>
                 <div>
@@ -729,7 +733,7 @@ export default function AddCustomer() {
                     name="industry"
                     value={formData.industry}
                     onChange={handleChange}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-sm px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-200 transition-all"
                   >
                     <option value="">Select Industry</option>
                     {industries.map((item) => (
@@ -754,7 +758,7 @@ export default function AddCustomer() {
                     onBlur={handleBlur}
                     value={formData.website}
                     onChange={handleChange}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-sm px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-200 transition-all"
                   />
                   {error && (
                     <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
@@ -772,7 +776,7 @@ export default function AddCustomer() {
                     value={formData.remarks}
                     onChange={handleChange}
                     rows="3"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all resize-none"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-sm px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-200 transition-all resize-none"
                   ></textarea>
                 </div>
               </div>
@@ -813,7 +817,7 @@ export default function AddCustomer() {
                             </label>
                           )}
                           <select
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
+                            className="w-full bg-white border border-gray-200 rounded-sm px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-200 transition-all"
                             value={gst.gst_type}
                             onChange={(e) =>
                               updateGst(gst.id, "gst_type", e.target.value)
@@ -833,7 +837,7 @@ export default function AddCustomer() {
                           )}
                           <input
                             type="text"
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
+                            className="w-full bg-white border border-gray-200 rounded-sm px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-200 transition-all"
                             placeholder="Enter GST number"
                             value={gst.gst_number}
                             onChange={(e) =>
@@ -849,7 +853,7 @@ export default function AddCustomer() {
                           )}
                           <input
                             type="text"
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
+                            className="w-full bg-white border border-gray-200 rounded-sm px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-200 transition-all"
                             placeholder="Enter state"
                             value={gst.gst_state}
                             onChange={(e) =>
@@ -862,7 +866,7 @@ export default function AddCustomer() {
                             <button
                               type="button"
                               onClick={() => removeGst(gst.id)}
-                              className="w-9 h-9 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center text-red-400 hover:bg-red-100 hover:text-red-600 hover:cursor-pointer transition-all"
+                              className="w-9 h-9 rounded-sm bg-red-50 border border-red-100 flex items-center justify-center text-red-400 hover:bg-red-100 hover:text-red-600 hover:cursor-pointer transition-all"
                             >
                               <i className="bi bi-trash3 text-sm"></i>
                             </button>
@@ -875,6 +879,14 @@ export default function AddCustomer() {
               </div>
               {/* Form Buttons */}
               <div className="flex justify-end gap-3 pt-2">
+               
+                <button
+                  type="button"
+                  onClick={() => router.push("/customer-list")}
+                  className="px-6 py-2.5 text-sm text-gray-500 border border-gray-200 rounded-sm hover:bg-gray-50 hover:cursor-pointer transition-all"
+                >
+                  Cancel
+                </button> 
                 <button
                   type="button"
                   onClick={async () => {
@@ -885,20 +897,13 @@ export default function AddCustomer() {
                 >
                   <i className="bi bi-check2"></i> Save Changes
                 </button>
-                <button
-                  type="button"
-                  onClick={() => router.push("/customer-list")}
-                  className="px-6 py-2.5 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 hover:cursor-pointer transition-all"
-                >
-                  Cancel
-                </button>
               </div>
             </form>
           )}
 
           {/* ── ADDRESS DETAILS TAB ── */}
           {activeTab === "address-details" && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="bg-white rounded-sm border border-gray-200 shadow-sm max-w-[800px]">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
@@ -1068,7 +1073,7 @@ export default function AddCustomer() {
 
           {/* ── CONTACT DETAILS TAB ── */}
           {activeTab === "contact-details" && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="bg-white rounded-sm border border-gray-200 shadow-sm max-w-[900px]">
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
