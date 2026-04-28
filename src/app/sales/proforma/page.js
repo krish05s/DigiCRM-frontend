@@ -14,6 +14,9 @@ export default function ProformaPage() {
   const [percentage, setPercentage] = useState("");
   const [activeIndex, setActiveIndex] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [updateLoading, setUpdateLoading] = useState(false);
+  
 
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportRef = useRef(null);
@@ -216,12 +219,12 @@ export default function ProformaPage() {
     }
 
     try {
-      // Step 1: Add follow-up
+      setSubmitLoading(true); // ✅ ADD THIS
+
       await axios.post(`${API}/api/pi/add-followup/${selectedPI.pi_id}`, {
         percentage: newPercent,
       });
 
-      // Step 2: Auto update status based on total %
       await updateStatus(selectedPI.pi_id, newTotal);
 
       toast.success(
@@ -236,14 +239,10 @@ export default function ProformaPage() {
       fetchPI();
     } catch (err) {
       toast.error(err.response?.data?.message || "Error");
+    } finally {
+      setSubmitLoading(false); // ✅ ADD THIS
     }
   };
-
-  const handleEdit = (item) => {
-    setEditing(item);
-    setPercentage(item.proforma_percentage);
-  };
-
   // ===================================================
   // UPDATE FOLLOW-UP + AUTO STATUS
   // ===================================================
@@ -267,13 +266,13 @@ export default function ProformaPage() {
     }
 
     try {
-      // Step 1: Update follow-up
+      setUpdateLoading(true); // ✅ ADD THIS
+
       await axios.put(
         `${API}/api/pi/update-followup/${selectedPI.pi_id}/${editing.id}`,
         { percentage: newPercent },
       );
 
-      // Step 2: Auto update status based on total %
       await updateStatus(selectedPI.pi_id, newTotal);
 
       toast.success(
@@ -288,9 +287,14 @@ export default function ProformaPage() {
       fetchPI();
     } catch (err) {
       toast.error(err.response?.data?.message || "Update failed");
+    } finally {
+      setUpdateLoading(false); // ✅ ADD THIS
     }
   };
-
+  const handleEdit = (item) => {
+    setEditing(item);
+    setPercentage(item.proforma_percentage);
+  };
   return (
     <>
       <Header />
@@ -774,9 +778,38 @@ export default function ProformaPage() {
               </button>
               <button
                 onClick={editing ? handleUpdate : handleSubmitFollowUp}
-                className="px-6 py-2 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-all shadow-md shadow-orange-200"
+                disabled={editing ? updateLoading : submitLoading}
+                className={`w-36 px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all shadow-md shadow-orange-200 flex items-center justify-center
+    ${
+      (editing ? updateLoading : submitLoading)
+        ? "bg-orange-400 cursor-not-allowed"
+        : "bg-orange-500 hover:bg-orange-600"
+    }`}
               >
-                {editing ? "Update Follow-Up" : "Add Follow-Up"}
+                {(editing ? updateLoading : submitLoading) ? (
+                  <svg
+                    className="animate-spin h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="white"
+                      strokeWidth="4"
+                      opacity="0.25"
+                    />
+                    <path
+                      fill="white"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    />
+                  </svg>
+                ) : editing ? (
+                  "Update"
+                ) : (
+                  "Add Follow-Up"
+                )}
               </button>
             </div>
           </div>
