@@ -4,10 +4,13 @@ import Link from "next/link";
 import axios from "redaxios";
 import React, { useEffect, useState } from "react";
 import { ChevronUpIcon, ChevronDownIcon } from "lucide-react";
+import useAuth from "@/app/components/useAuth";
 
 export default function Page() {
 
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  useAuth();
 
   const [data, setData] = useState([]);
   const [page, setPage] = useState(1);

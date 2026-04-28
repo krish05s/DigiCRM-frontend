@@ -7,9 +7,12 @@ import { ChevronUpIcon, ChevronDownIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import axios from "redaxios";
+import useAuth from "../components/useAuth";
 
 export default function CustomerList() {
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  useAuth();
 
   const [data, setData] = useState([]);
   const [page, setPage] = useState(1);
@@ -44,21 +47,7 @@ export default function CustomerList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-  // Token Check
-  const [role, setRole] = useState("");
-  const router = useRouter();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-
-    if (!token) {
-      router.push("/");
-      toast.error("Please Login First");
-    } else {
-      setRole(role);
-    }
-  }, [router]);
 
   // Store offset for each scrollable column
   const [columnOffsets, setColumnOffsets] = useState({

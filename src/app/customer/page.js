@@ -7,10 +7,13 @@ import axios from "redaxios";
 import { toast } from "react-toastify";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import useAuth from "../components/useAuth";
 
 export default function AddCustomer() {
 
     const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+    useAuth();
 
     const [activeTab, setActiveTab] = useState("customer");
     const API_base = `${API_BASE}/api/customers`;

@@ -6,6 +6,7 @@ import Header from "@/app/components/header";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { checkRole } from "@/utils/checkRole";
+import useAuth from "@/app/components/useAuth";
 
 export default function Page() {
   const [btnLoading, setBtnLoading] = useState(false);
@@ -56,6 +57,8 @@ export default function Page() {
     contact_person: "",
     description: "",
   });
+
+  useAuth();
 
   const fetchLeads = async () => {
     try {

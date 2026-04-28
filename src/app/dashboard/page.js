@@ -28,6 +28,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import useAuth from "../components/useAuth";
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
@@ -87,19 +88,7 @@ export default function Dashboard() {
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Authentication check
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-
-    if (!token) {
-      router.push("/");
-      toast.error("Please Login First");
-    } else {
-      setRole(role);
-      setToken(token);
-    }
-  }, [router]);
+  useAuth();
 
   // Fetch dashboard data
   const fetchData = useCallback(async () => {

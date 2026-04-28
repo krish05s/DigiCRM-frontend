@@ -8,11 +8,14 @@ import { toast } from "react-toastify";
 import Link from "next/link";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import useAuth from "../components/useAuth";
 
 export default function AddCustomer() {
   const [activeTab, setActiveTab] = useState("update-customer");
 
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  useAuth();
 
   const [designations, setDesignations] = useState([]);
 
