@@ -265,7 +265,7 @@ export default function Page() {
         </div>
       </div>
       {/* Form */}
-      <form onSubmit={handleSubmit} className="px-6 pb-6 mx-auto max-w-5xl">
+      <form onSubmit={handleSubmit} className="px-6 pb-6 mx-auto max-w-5xl max-h-[80vh] overflow-y-scroll">
         <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Add Lead</h2>
           <hr className="border-gray-100 mt-2 mb-4" />
