@@ -6,58 +6,50 @@ import PhoneInput from "react-phone-input-2";
 import axios from "redaxios";
 import { toast } from "react-toastify";
 import Link from "next/link";
-import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import useAuth from "../components/useAuth";
 
+
 export default function AddCustomer() {
-  const [activeTab, setActiveTab] = useState("update-customer");
+  const [activeTab, setActiveTab] = useState("update-customer")
 
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
-
   useAuth();
+const router = useRouter(); // ← yeh add karo
+
+  
 
   const [designations, setDesignations] = useState([]);
-
   const [industries, setIndustries] = useState([]);
   const [companyname, setCompanyname] = useState([]);
   const [showaddressModal, setShowAddressModal] = useState(false);
   const [showcontactsModal, setShowContactsModal] = useState(false);
-const [isSavingAddress, setIsSavingAddress] = useState(false);
-  const router = useRouter();
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingContact, setIsSavingContact] = useState(false);
 
   const [gstDetails, setGstDetails] = useState([]);
 
-  // Collect row id from localstorage
-
   const [customerId, setCustomerId] = useState(null);
 
   useEffect(() => {
     const id = localStorage.getItem("customer_edit_id");
-
     if (id) {
       setCustomerId(id);
     }
   }, []);
 
-  // Website Validatation >>>
+  // Website Validation
   const websiteRef = useRef();
   const [error, setError] = useState("");
 
   const handleBlur = () => {
     let value = formData.website;
-
-    // Ensure https:// is present
     if (!value.startsWith("https://")) {
       value = "https://" + value.replace(/^https?:\/\//, "");
     }
-
-    // Update formData
     setFormData((prev) => ({ ...prev, website: value }));
-
-    // Validate domain
     const domain = value.replace(/^https:\/\//, "");
     const domainRegex = /^(www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/;
     if (!domainRegex.test(domain)) {
@@ -67,15 +59,11 @@ const [isSavingAddress, setIsSavingAddress] = useState(false);
     }
   };
 
-  // Keep cursor at the end when focusing
   const handleFocus = (e) => {
     const el = websiteRef.current;
     const length = el.value.length;
     el.setSelectionRange(length, length);
-    console.log(e.target.value);
   };
-
-  //  <<< Website Validation
 
   const [formData, setFormData] = useState({
     customer_type: "",
@@ -99,30 +87,19 @@ const [isSavingAddress, setIsSavingAddress] = useState(false);
 
   const addGst = () => {
     if (gstDetails.length >= 5) return;
-
     setGstDetails([
       ...gstDetails,
-      {
-        gst_type: "",
-        gst_number: "",
-        gst_state: "",
-      },
+      { gst_type: "", gst_number: "", gst_state: "" },
     ]);
   };
 
   const removeGst = async (id) => {
     if (gstDetails.length === 1) return;
-
     try {
       const token = localStorage.getItem("token");
-
       await axios.delete(`${API_BASE}/api/customers/delete-gst/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      // Update UI only after successful delete completed
       setGstDetails((prev) => prev.filter((gst) => gst.id !== id));
     } catch (error) {
       console.error(error);
@@ -133,8 +110,8 @@ const [isSavingAddress, setIsSavingAddress] = useState(false);
   const updateGst = (id, field, value) => {
     setGstDetails(
       gstDetails.map((gst) =>
-        gst.id === id ? { ...gst, [field]: value } : gst,
-      ),
+        gst.id === id ? { ...gst, [field]: value } : gst
+      )
     );
   };
 
@@ -142,17 +119,10 @@ const [isSavingAddress, setIsSavingAddress] = useState(false);
     try {
       const token = localStorage.getItem("token");
       const customerId = localStorage.getItem("customer_edit_id");
-
       await axios.put(
         `${API_BASE}/api/customers/customer-gst/${customerId}`,
-        {
-          gst_details: gstDetails,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
+        { gst_details: gstDetails },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
     } catch (err) {
       console.error(err);
@@ -160,69 +130,51 @@ const [isSavingAddress, setIsSavingAddress] = useState(false);
     }
   };
 
-  // update data in customer_data table
-const handleSubmit = async (e) => {
-  if (e) e.preventDefault();
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!customerId) {
+      toast.error("Customer ID not found");
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      const token = localStorage.getItem("token");
+      const payload = {
+        company_name: formData.company_name,
+        customer_type: formData.customer_type,
+        customer_name: formData.customer_name,
+        email: formData.email,
+        mobile: formData.mobile,
+        industry: formData.industry,
+        website: formData.website,
+        remarks: formData.remarks,
+      };
+      const res = await axios.put(
+        `${API_BASE}/api/customers/customer-data/${customerId}`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(res.data.message || "Customer updated successfully");
+      router.push("/customer-list"); // ← aa line add karo
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to update customer");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-  if (!customerId) {
-    toast.error("Customer ID not found");
-    return;
-  }
-
-  try {
-    setIsSubmitting(true); // ✅ START
-
-    const token = localStorage.getItem("token");
-
-    const payload = {
-      company_name: formData.company_name,
-      customer_type: formData.customer_type,
-      customer_name: formData.customer_name,
-      email: formData.email,
-      mobile: formData.mobile,
-      industry: formData.industry,
-      website: formData.website,
-      remarks: formData.remarks,
-    };
-
-    const res = await axios.put(
-      `${API_BASE}/api/customers/customer-data/${customerId}`,
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
-
-    toast.success(res.data.message || "Customer updated successfully");
-  } catch (err) {
-    console.error(err);
-    toast.error(err.response?.data?.message || "Failed to update customer");
-  } finally {
-    setIsSubmitting(false); // ✅ STOP
-  }
-};
-
-  // Existing Data Render Into Form
+  // Fetch existing customer data
   useEffect(() => {
     if (!customerId) return;
-
     const fetchCustomer = async () => {
       try {
         const token = localStorage.getItem("token");
-
         const res = await axios.get(
           `${API_BASE}/api/customers/customer/${customerId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
+          { headers: { Authorization: `Bearer ${token}` } }
         );
-
         const { customer, gst_details } = res.data;
-
         setFormData({
           customer_type: customer.customer_type || "",
           company_name: customer.company_id || "",
@@ -233,26 +185,23 @@ const handleSubmit = async (e) => {
           website: customer.website || "https://",
           remarks: customer.remarks || "",
         });
-
         setGstDetails(
           gst_details.map((gst) => ({
             id: gst.id,
             gst_type: gst.gst_type,
             gst_number: gst.gst_number,
             gst_state: gst.state,
-          })),
+          }))
         );
       } catch (err) {
         console.error(err);
         toast.error("Failed to load customer");
       }
     };
-
     fetchCustomer();
   }, [customerId]);
 
-  // Fetch active designation for contact and set into dropdown
-
+  // Fetch designations
   useEffect(() => {
     const fetchDesignations = async () => {
       try {
@@ -264,51 +213,43 @@ const handleSubmit = async (e) => {
         console.error("Failed to fetch designations:", err);
       }
     };
-
     fetchDesignations();
   }, []);
 
-  // Fetching Active Industries
+  // Fetch industries
   useEffect(() => {
     const fetchIndustry = async () => {
       try {
         const res = await axios.get(`${API_BASE}/api/Industries/industries`, {
           params: { status: 1 },
         });
-
-        // If your API wraps data like { data: [...] }
         setIndustries(res.data.data || res.data);
       } catch (err) {
         console.error("Failed to fetch names:", err);
-        setIndustries([]); // fallback
+        setIndustries([]);
       }
     };
-
     fetchIndustry();
   }, []);
 
+  // Fetch company names
   useEffect(() => {
     const fetchCompanyName = async () => {
       try {
         const res = await axios.get(
           `${API_BASE}/api/organizations/organization-name`,
-          {
-            params: { status: 1 },
-          },
+          { params: { status: 1 } }
         );
-
-        // If your API wraps data like { data: [...] }
         setCompanyname(res.data.data || res.data);
       } catch (err) {
         console.error("Failed to fetch company names:", err);
         setCompanyname([]);
       }
     };
-
     fetchCompanyName();
   }, []);
 
-  // edit address integration functions
+  // ── ADDRESS FUNCTIONS ──
 
   const [addresses, setAddresses] = useState([]);
   const [addressForm, setAddressForm] = useState({
@@ -317,19 +258,14 @@ const handleSubmit = async (e) => {
   });
   const [editAddressId, setEditAddressId] = useState(null);
 
-  // Read Address Details
-
   const fetchAddresses = async () => {
     if (!customerId) return;
-
     try {
       const token = localStorage.getItem("token");
-
       const res = await axios.get(
         `${API_BASE}/api/customers/customer-address/${customerId}`,
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
       setAddresses(res.data);
     } catch (err) {
       console.error(err);
@@ -342,51 +278,54 @@ const handleSubmit = async (e) => {
     fetchContacts();
   }, [customerId]);
 
-  // Handle Address Form Input
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
     setAddressForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // saveAddress Function for insert and update
- const saveAddress = async () => {
-   try {
-     setIsSavingAddress(true); // ✅ START
+  const saveAddress = async () => {
+    // Validation
+    if (!addressForm.address_type) {
+      toast.error("Please select an address type");
+      return;
+    }
+    if (!addressForm.address.trim()) {
+      toast.error("Please enter an address");
+      return;
+    }
 
-     const token = localStorage.getItem("token");
+    try {
+      setIsSavingAddress(true);
+      const token = localStorage.getItem("token");
 
-     if (editAddressId) {
-       await axios.put(
-         `${API_BASE}/api/customers/customer-address/${editAddressId}`,
-         addressForm,
-         { headers: { Authorization: `Bearer ${token}` } },
-       );
-       toast.success("Address updated");
-     } else {
-       await axios.post(
-         `${API_BASE}/api/customers/customer-address`,
-         {
-           customer_id: customerId,
-           ...addressForm,
-         },
-         { headers: { Authorization: `Bearer ${token}` } },
-       );
-       toast.success("Address added");
-     }
+      if (editAddressId) {
+        await axios.put(
+          `${API_BASE}/api/customers/customer-address/${editAddressId}`,
+          addressForm,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        toast.success("Address updated");
+      } else {
+        await axios.post(
+          `${API_BASE}/api/customers/customer-address`,
+          { customer_id: customerId, ...addressForm },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        toast.success("Address added");
+      }
 
-     setShowAddressModal(false);
-     setAddressForm({ address_type: "", address: "" });
-     setEditAddressId(null);
-     fetchAddresses();
-   } catch (err) {
-     console.error(err);
-     toast.error("Failed to save address");
-   } finally {
-     setIsSavingAddress(false); // ✅ STOP
-   }
- };
+      setShowAddressModal(false);
+      setAddressForm({ address_type: "", address: "" });
+      setEditAddressId(null);
+      fetchAddresses();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save address");
+    } finally {
+      setIsSavingAddress(false);
+    }
+  };
 
-  // Edit Address Data Rendering and collect id of row
   const editAddress = (item) => {
     setEditAddressId(item.id);
     setAddressForm({
@@ -396,15 +335,12 @@ const handleSubmit = async (e) => {
     setShowAddressModal(true);
   };
 
-  // Delete Address Details
   const deleteAddress = async (id) => {
     try {
       const token = localStorage.getItem("token");
-
       await axios.delete(`${API_BASE}/api/customers/customer-address/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       setAddresses((prev) => prev.filter((addr) => addr.id !== id));
       toast.success("Address deleted");
     } catch (err) {
@@ -413,18 +349,14 @@ const handleSubmit = async (e) => {
     }
   };
 
-  // Reset While we can cancel or close Address Model
-
   const closeAddressModal = () => {
     setShowAddressModal(false);
     setEditAddressId(null);
-    setAddressForm({
-      address_type: "",
-      address: "",
-    });
+    setAddressForm({ address_type: "", address: "" });
   };
 
-  // edit contacts integration functions
+  // ── CONTACT FUNCTIONS ──
+
   const [contacts, setContacts] = useState([]);
   const [contactForm, setContactForm] = useState({
     contact_person: "",
@@ -434,19 +366,14 @@ const handleSubmit = async (e) => {
   });
   const [editContactId, setEditContactId] = useState(null);
 
-  // read api for fetch contacts
-
   const fetchContacts = async () => {
     if (!customerId) return;
-
     try {
       const token = localStorage.getItem("token");
-
       const res = await axios.get(
         `${API_BASE}/api/customers/customer-contacts/${customerId}`,
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
       setContacts(res.data.data);
     } catch (err) {
       console.error(err);
@@ -454,19 +381,14 @@ const handleSubmit = async (e) => {
     }
   };
 
-  // Handle contacts Form Input
-
   const handleContactChange = (e) => {
     const { name, value } = e.target;
     setContactForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Save contacts for insert and update
-
   const saveContact = async () => {
     try {
-      setIsSavingContact(true); // ✅ START
-
+      setIsSavingContact(true);
       const token = localStorage.getItem("token");
 
       if (editContactId) {
@@ -477,7 +399,7 @@ const handleSubmit = async (e) => {
             customer_name: formData.customer_name,
             ...contactForm,
           },
-          { headers: { Authorization: `Bearer ${token}` } },
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         toast.success("Contact updated");
       } else {
@@ -489,7 +411,7 @@ const handleSubmit = async (e) => {
             customer_name: formData.customer_name,
             ...contactForm,
           },
-          { headers: { Authorization: `Bearer ${token}` } },
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         toast.success("Contact added");
       }
@@ -507,10 +429,9 @@ const handleSubmit = async (e) => {
       console.error(err);
       toast.error("Failed to save contact");
     } finally {
-      setIsSavingContact(false); // ✅ STOP
+      setIsSavingContact(false);
     }
   };
-  // Edit contacts Data Rendering and collect id of row
 
   const editContact = (item) => {
     setEditContactId(item.id);
@@ -523,16 +444,12 @@ const handleSubmit = async (e) => {
     setShowContactsModal(true);
   };
 
-  // Delete contacts api integration
-
   const deleteContact = async (id) => {
     try {
       const token = localStorage.getItem("token");
-
       await axios.delete(`${API_BASE}/api/customers/customer-contacts/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       setContacts((prev) => prev.filter((contact) => contact.id !== id));
       toast.success("Contact deleted");
     } catch (err) {
@@ -540,11 +457,23 @@ const handleSubmit = async (e) => {
       toast.error("Failed to delete contact");
     }
   };
+
+  const closeContactModal = () => {
+    setShowContactsModal(false);
+    setEditContactId(null);
+    setContactForm({
+      contact_person: "",
+      contact_number: "",
+      email: "",
+      contact_designation: "",
+    });
+  };
+
   return (
     <>
       <Header />
       <div className="min-h-screen bg-gray-50">
-        {/* Breadcrumb Header */}
+        {/* Breadcrumb */}
         <div className="bg-white border-b border-gray-200 px-6 py-3">
           <div className="flex items-center gap-2 text-sm">
             <Link
@@ -574,21 +503,9 @@ const handleSubmit = async (e) => {
           {/* Tabs */}
           <div className="flex gap-1 mb-6 border-b border-gray-200">
             {[
-              {
-                key: "update-customer",
-                label: "Update Customer",
-                icon: "bi-person",
-              },
-              {
-                key: "address-details",
-                label: "Address Details",
-                icon: "bi-geo-alt",
-              },
-              {
-                key: "contact-details",
-                label: "Contact Details",
-                icon: "bi-telephone",
-              },
+              { key: "update-customer", label: "Update Customer", icon: "bi-person" },
+              { key: "address-details", label: "Address Details", icon: "bi-geo-alt" },
+              { key: "contact-details", label: "Contact Details", icon: "bi-telephone" },
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -649,13 +566,11 @@ const handleSubmit = async (e) => {
                 </div>
               </div>
 
-              {/* Row 1: Company Name, Customer Name, Mobile No */}
-              <div className="grid grid-cols-2 gap-2  max-h-[90vh] custom-scroll">
-              
+              {/* Row 1 */}
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                    Company Name 
-                    {/* <span className="text-red-400">*</span> */}
+                    Company Name
                   </label>
                   <input
                     name="company_name"
@@ -664,24 +579,10 @@ const handleSubmit = async (e) => {
                     value={formData.company_name}
                     onChange={handleChange}
                   />
-                  {/* <select
-                    name="company_name"
-                    value={formData.company_name}
-                    onChange={handleChange}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400 transition-all"
-                  >
-                    <option value="">Select Company</option>
-                    {companyname.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.organization_name}
-                      </option>
-                    ))}
-                  </select> */}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
                     Customer Name
-                     {/* <span className="text-red-400">*</span> */}
                   </label>
                   <input
                     type="text"
@@ -708,7 +609,6 @@ const handleSubmit = async (e) => {
                       backgroundColor: "#f9fafb",
                       fontSize: "14px",
                       color: "#374151",
-                      className: "focus:outline-none focus:ring-1 focus:ring-orange-200 transition-all",
                     }}
                     buttonStyle={{
                       borderTopLeftRadius: "0.5rem",
@@ -720,7 +620,7 @@ const handleSubmit = async (e) => {
                 </div>
               </div>
 
-              {/* Row 2: Email, Industry */}
+              {/* Row 2 */}
               <div className="grid grid-cols-2 gap-5">
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
@@ -755,7 +655,7 @@ const handleSubmit = async (e) => {
                 </div>
               </div>
 
-              {/* Row 3: Website, Remarks */}
+              {/* Row 3 */}
               <div className="grid grid-cols-2 gap-5">
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
@@ -887,16 +787,16 @@ const handleSubmit = async (e) => {
                   </div>
                 )}
               </div>
+
               {/* Form Buttons */}
               <div className="flex justify-end gap-3 pt-2">
-               
                 <button
                   type="button"
                   onClick={() => router.push("/customer-list")}
                   className="px-6 py-2.5 text-sm text-gray-500 border border-gray-200 rounded-sm hover:bg-gray-50 hover:cursor-pointer transition-all"
                 >
                   Cancel
-                </button> 
+                </button>
                 <button
                   type="button"
                   disabled={isSubmitting}
@@ -905,32 +805,15 @@ const handleSubmit = async (e) => {
                     await saveGstDetails();
                   }}
                   className={`w-40 flex items-center justify-center gap-2 px-6 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-lg transition-all shadow-sm
-    ${isSubmitting ? "opacity-70 cursor-not-allowed" : "hover:bg-orange-600 hover:cursor-pointer"}
-  `}
+                    ${isSubmitting ? "opacity-70 cursor-not-allowed" : "hover:bg-orange-600 hover:cursor-pointer"}`}
                 >
                   {isSubmitting ? (
-                    <svg
-                      className="animate-spin h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="white"
-                        strokeWidth="4"
-                        opacity="0.25"
-                      />
-                      <path
-                        fill="white"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                      />
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="4" opacity="0.25" />
+                      <path fill="white" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                     </svg>
                   ) : (
-                    <>
-                      <i className="bi bi-check2"></i> Save Changes
-                    </>
+                    <><i className="bi bi-check2"></i> Save Changes</>
                   )}
                 </button>
               </div>
@@ -954,36 +837,18 @@ const handleSubmit = async (e) => {
                     </p>
                   </div>
                 </div>
+
+                {/* ✅ FIX: "Add Address" button — opens modal, does NOT save */}
                 <button
                   type="button"
-                  onClick={saveAddress}
-                  disabled={isSavingAddress}
-                  className={`w-36 flex items-center justify-center px-5 py-2 text-sm font-semibold text-white bg-orange-500 rounded-lg transition-all
-    ${isSavingAddress ? "opacity-70 cursor-not-allowed" : "hover:bg-orange-600 hover:cursor-pointer"}
-  `}
+                  onClick={() => {
+                    setEditAddressId(null);
+                    setAddressForm({ address_type: "", address: "" });
+                    setShowAddressModal(true);
+                  }}
+                  className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:cursor-pointer transition-all shadow-sm"
                 >
-                  {isSavingAddress ? (
-                    <svg
-                      className="animate-spin h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="white"
-                        strokeWidth="4"
-                        opacity="0.25"
-                      />
-                      <path
-                        fill="white"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                      />
-                    </svg>
-                  ) : (
-                    "Save Address"
-                  )}
+                  <i className="bi bi-plus-lg"></i> Add Address
                 </button>
               </div>
 
@@ -1008,10 +873,7 @@ const handleSubmit = async (e) => {
                   <tbody>
                     {addresses.length === 0 ? (
                       <tr>
-                        <td
-                          colSpan="4"
-                          className="text-center py-10 text-gray-400"
-                        >
+                        <td colSpan="4" className="text-center py-10 text-gray-400">
                           <i className="bi bi-geo-alt text-3xl block mb-2"></i>
                           No addresses added yet
                         </td>
@@ -1058,7 +920,7 @@ const handleSubmit = async (e) => {
                 </table>
               </div>
 
-              {/* Address Modal */}
+              {/* ✅ Address Modal — Add & Edit both work here */}
               {showaddressModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                   <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
@@ -1066,7 +928,7 @@ const handleSubmit = async (e) => {
                       <div className="flex items-center gap-2">
                         <i className="bi bi-geo-alt text-white"></i>
                         <h3 className="text-white font-semibold">
-                          {editAddressId ? "Edit Address" : "Add Address"}
+                          {editAddressId ? "Edit Address" : "Add New Address"}
                         </h3>
                       </div>
                       <button
@@ -1097,7 +959,7 @@ const handleSubmit = async (e) => {
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                          Address
+                          Address <span className="text-red-400">*</span>
                         </label>
                         <textarea
                           name="address"
@@ -1121,29 +983,16 @@ const handleSubmit = async (e) => {
                         type="button"
                         onClick={saveAddress}
                         disabled={isSavingAddress}
-                        className={`w-36 flex items-center justify-center px-5 py-2 text-sm font-semibold text-white bg-orange-500 rounded-lg transition-all
-    ${isSavingAddress ? "opacity-70 cursor-not-allowed" : "hover:bg-orange-600 hover:cursor-pointer"}
-  `}
+                        className={`w-40 flex items-center justify-center px-5 py-2 text-sm font-semibold text-white bg-orange-500 rounded-lg transition-all
+                          ${isSavingAddress ? "opacity-70 cursor-not-allowed" : "hover:bg-orange-600 hover:cursor-pointer"}`}
                       >
                         {isSavingAddress ? (
-                          <svg
-                            className="animate-spin h-4 w-4"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                          >
-                            <circle
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="white"
-                              strokeWidth="4"
-                              opacity="0.25"
-                            />
-                            <path
-                              fill="white"
-                              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                            />
+                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="4" opacity="0.25" />
+                            <path fill="white" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                           </svg>
+                        ) : editAddressId ? (
+                          "Update Address"
                         ) : (
                           "Save Address"
                         )}
@@ -1174,7 +1023,16 @@ const handleSubmit = async (e) => {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowContactsModal(true)}
+                  onClick={() => {
+                    setEditContactId(null);
+                    setContactForm({
+                      contact_person: "",
+                      contact_number: "",
+                      email: "",
+                      contact_designation: "",
+                    });
+                    setShowContactsModal(true);
+                  }}
                   className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:cursor-pointer transition-all shadow-sm"
                 >
                   <i className="bi bi-plus-lg"></i> Add Contact
@@ -1185,39 +1043,20 @@ const handleSubmit = async (e) => {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
-                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        #
-                      </th>
-                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Company
-                      </th>
-                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Customer
-                      </th>
-                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Contact Person
-                      </th>
-                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Number
-                      </th>
-                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Email
-                      </th>
-                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Designation
-                      </th>
-                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Action
-                      </th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">#</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Company</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Customer</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Contact Person</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Number</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Email</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Designation</th>
+                      <th className="px-4 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {contacts.length === 0 ? (
                       <tr>
-                        <td
-                          colSpan="8"
-                          className="text-center py-10 text-gray-400"
-                        >
+                        <td colSpan="8" className="text-center py-10 text-gray-400">
                           <i className="bi bi-telephone text-3xl block mb-2"></i>
                           No contacts added yet
                         </td>
@@ -1228,24 +1067,12 @@ const handleSubmit = async (e) => {
                           key={item.id}
                           className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
                         >
-                          <td className="px-4 py-3.5 text-gray-400 text-xs font-medium">
-                            {index + 1}
-                          </td>
-                          <td className="px-4 py-3.5 text-gray-600">
-                            {item.company_name}
-                          </td>
-                          <td className="px-4 py-3.5 text-gray-700 font-medium">
-                            {item.customer_name}
-                          </td>
-                          <td className="px-4 py-3.5 text-gray-600">
-                            {item.contact_person}
-                          </td>
-                          <td className="px-4 py-3.5 text-gray-600">
-                            {item.contact_number}
-                          </td>
-                          <td className="px-4 py-3.5 text-gray-600">
-                            {item.email}
-                          </td>
+                          <td className="px-4 py-3.5 text-gray-400 text-xs font-medium">{index + 1}</td>
+                          <td className="px-4 py-3.5 text-gray-600">{item.company_name}</td>
+                          <td className="px-4 py-3.5 text-gray-700 font-medium">{item.customer_name}</td>
+                          <td className="px-4 py-3.5 text-gray-600">{item.contact_person}</td>
+                          <td className="px-4 py-3.5 text-gray-600">{item.contact_number}</td>
+                          <td className="px-4 py-3.5 text-gray-600">{item.email}</td>
                           <td className="px-4 py-3.5">
                             <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-purple-50 text-purple-600 text-xs font-semibold">
                               {item.designation_name}
@@ -1289,7 +1116,7 @@ const handleSubmit = async (e) => {
                       </div>
                       <button
                         type="button"
-                        onClick={() => setShowContactsModal(false)}
+                        onClick={closeContactModal}
                         className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 hover:cursor-pointer transition-all"
                       >
                         <i className="bi bi-x-lg text-sm"></i>
@@ -1305,6 +1132,7 @@ const handleSubmit = async (e) => {
                           name="contact_person"
                           value={contactForm.contact_person}
                           onChange={handleContactChange}
+                          placeholder="Enter contact person name"
                           className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
                         />
                       </div>
@@ -1317,6 +1145,7 @@ const handleSubmit = async (e) => {
                           name="contact_number"
                           value={contactForm.contact_number}
                           onChange={handleContactChange}
+                          placeholder="Enter contact number"
                           className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
                         />
                       </div>
@@ -1329,6 +1158,7 @@ const handleSubmit = async (e) => {
                           name="email"
                           value={contactForm.email}
                           onChange={handleContactChange}
+                          placeholder="Enter email address"
                           className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
                         />
                       </div>
@@ -1354,7 +1184,7 @@ const handleSubmit = async (e) => {
                     <div className="flex justify-end gap-3 px-6 pb-6">
                       <button
                         type="button"
-                        onClick={() => setShowContactsModal(false)}
+                        onClick={closeContactModal}
                         className="px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 hover:cursor-pointer transition-all"
                       >
                         Cancel
@@ -1363,28 +1193,14 @@ const handleSubmit = async (e) => {
                         type="button"
                         onClick={saveContact}
                         disabled={isSavingContact}
-                        className={`w-36 flex items-center justify-center px-5 py-2 text-sm font-semibold text-white bg-orange-500 rounded-lg transition-all
-    ${isSavingContact ? "opacity-70 cursor-not-allowed" : "hover:bg-orange-600 hover:cursor-pointer"}
-  `}
+                        className={`w-40 flex items-center justify-center px-5 py-2 text-sm font-semibold text-white bg-orange-500 rounded-lg transition-all
+                          ${isSavingContact ? "opacity-70 cursor-not-allowed" : "hover:bg-orange-600 hover:cursor-pointer"}`}
                       >
+                        
                         {isSavingContact ? (
-                          <svg
-                            className="animate-spin h-4 w-4"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                          >
-                            <circle
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="white"
-                              strokeWidth="4"
-                              opacity="0.25"
-                            />
-                            <path
-                              fill="white"
-                              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                            />
+                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="4" opacity="0.25" />
+                            <path fill="white" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                           </svg>
                         ) : editContactId ? (
                           "Update Contact"

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Header from "../components/header";
 import Link from "next/link";
-import { ChevronUpIcon, ChevronDownIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import axios from "redaxios";
@@ -11,52 +10,30 @@ import useAuth from "../components/useAuth";
 
 export default function CustomerList() {
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const router = useRouter();
 
   useAuth();
 
   const [data, setData] = useState([]);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  // BUG FIX #1: was "setDesignations" (undefined variable), changed to setIndustries
   const [industries, setIndustries] = useState([]);
 
-  // view
   const [viewModal, setViewModal] = useState({ open: false, data: null });
-
-  // delete
-  const [deleteModal, setDeleteModal] = useState({
-    open: false,
-    id: null,
-    name: "",
-  });
+  const [deleteModal, setDeleteModal] = useState({ open: false, id: null, name: "" });
 
   const [filters, setFilters] = useState({
     customer_name: "",
+    // BUG FIX #4: renamed contact_number to mobile to match backend param
     mobile: "",
     email: "",
     industry: "",
   });
-  useEffect(() => {
-    axios
-      .get(`${API_BASE}/api/contact/read`, { params: { status: 1 } })
-      .then((res) => setDesignations(res.data))
-      .catch(() => {});
-  }, []);
 
   const [sortConfig, setSortConfig] = useState({ key: "id", direction: "ASC" });
-
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-
-
-
-  // Store offset for each scrollable column
-  const [columnOffsets, setColumnOffsets] = useState({
-    company_name: 0,
-    customer_name: 0,
-    email: 0,
-    website: 0,
-    industry: 0,
-  });
 
   // Fetch table data
   const fetchCustomers = async () => {
@@ -71,18 +48,19 @@ export default function CustomerList() {
       }).toString();
 
       const res = await axios.get(`${API_BASE}/api/customers/get-customers?${query}`);
-
       const result = res.data;
 
       if (result.success) {
         setData(result.data);
+        // Reset to page 1 when new data arrives
+        setCurrentPage(1);
       } else {
         setData([]);
       }
     } catch (error) {
       console.error("Error fetching customers:", error);
     }
-  }
+  };
 
   // Fetching Active Industries
   useEffect(() => {
@@ -91,15 +69,13 @@ export default function CustomerList() {
         const res = await axios.get(`${API_BASE}/api/Industries/industries`, {
           params: { status: 1 },
         });
-
-        // If your API wraps data like { data: [...] }
+        // BUG FIX #1: was calling setDesignations (undefined), now correctly calls setIndustries
         setIndustries(res.data.data || res.data);
       } catch (err) {
-        console.error("Failed to fetch names:", err);
-        setIndustries([]); // fallback
+        console.error("Failed to fetch industries:", err);
+        setIndustries([]);
       }
     };
-
     fetchIndustry();
   }, []);
 
@@ -120,38 +96,44 @@ export default function CustomerList() {
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  //  PAGINATION CALCULATIONS
+  // PAGINATION
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentData = data.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(data.length / itemsPerPage);
 
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) setCurrentPage(page);
+  const handlePageChange = (p) => {
+    if (p >= 1 && p <= totalPages) setCurrentPage(p);
+  };
+
+  // Delete handler
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${API_BASE}/api/customers/${id}`);
+      toast.success("Customer deleted successfully");
+      fetchCustomers();
+    } catch (error) {
+      toast.error("Failed to delete customer");
+      console.error("Delete error:", error);
+    }
   };
 
   return (
     <>
       <Header />
       <div className="bg-gray-100">
+        {/* Header bar */}
         <div className="bg-white w-full rounded-sm shadow-lg p-3 mt-1 mb-5">
           <div className="flex justify-between items-center">
             <p>
-              <Link
-                href="/dashboard"
-                className="mx-3 text-xl text-gray-400 hover:text-indigo-600"
-              >
+              <Link href="/dashboard" className="mx-3 text-xl text-gray-400 hover:text-indigo-600">
                 <i className="bi bi-house"></i>
               </Link>
               <i className="bi bi-chevron-right"></i>
-              <Link
-                href="/customer-list"
-                className="mx-3 text-md text-gray-700 hover:text-orange-500"
-              >
+              <Link href="/customer-list" className="mx-3 text-md text-gray-700 hover:text-orange-500">
                 Customer List
               </Link>
             </p>
-
             <div>
               <input
                 type="text"
@@ -162,7 +144,7 @@ export default function CustomerList() {
               />
               <Link
                 href="/customer"
-                className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-sm ml-2  "
+                className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-sm ml-2"
               >
                 + ADD CUSTOMER
               </Link>
@@ -170,8 +152,7 @@ export default function CustomerList() {
           </div>
         </div>
 
-        {/* Filters + Table */}
-
+        {/* Filters */}
         <div className="mx-4 mb-2">
           <input
             type="text"
@@ -182,26 +163,19 @@ export default function CustomerList() {
             className="border bg-white border-gray-300 rounded-sm px-3 py-2 w-56 mx-2 focus:ring-orange-200 outline-none focus:ring-1"
           />
 
+          {/* BUG FIX #4: name is now "mobile" to match backend, state key also "mobile" */}
           <input
             type="text"
-            name="contact_number"
+            name="mobile"
             placeholder="Enter Contact Number"
             className="border bg-white border-gray-300 rounded-sm px-3 py-2 w-56 mx-2 focus:ring-orange-200 outline-none focus:ring-1"
-            value={filters.contact_number || ""}
+            value={filters.mobile || ""}
             onChange={(e) => {
               const val = e.target.value;
-
-              // Only allow digits
               if (!/^\d*$/.test(val)) return;
-
-              // First digit must be 6, 7, 8, or 9 (Indian mobile numbers)
-              if (val.length === 1 && !["6", "7", "8", "9"].includes(val))
-                return;
-
-              // Max 10 digits
+              if (val.length === 1 && !["6", "7", "8", "9"].includes(val)) return;
               if (val.length > 10) return;
-
-              setFilters((p) => ({ ...p, contact_number: val }));
+              setFilters((p) => ({ ...p, mobile: val }));
             }}
             maxLength={10}
           />
@@ -215,6 +189,8 @@ export default function CustomerList() {
             className="border bg-white border-gray-300 rounded-sm px-3 py-2 w-56 mx-2 focus:ring-orange-200 outline-none focus:ring-1"
           />
 
+          {/* BUG FIX #2 & #3: value is now item.id (number) not item.name (string)
+              This matches the backend SQL: AND c.industry = ? which stores industry id */}
           <select
             name="industry"
             value={filters.industry}
@@ -222,8 +198,8 @@ export default function CustomerList() {
             className="border bg-white border-gray-300 rounded-sm px-3 py-2 w-56 mx-2 focus:ring-orange-200 outline-none focus:ring-1 text-gray-500"
           >
             <option value="">Select Industry</option>
-            {industries.map((item, index) => (
-              <option key={item.id} value={item.name}>
+            {industries.map((item) => (
+              <option key={item.id} value={item.id}>
                 {item.name}
               </option>
             ))}
@@ -236,97 +212,66 @@ export default function CustomerList() {
                 customer_name: "",
                 mobile: "",
                 email: "",
-                contact_number: "",
-                email: "",
                 industry: "",
               });
             }}
-            className="border cursor-pointer rounded-sm p-0.5 border-gray-200  transition-all text-md  mx-5 px-3 bg-gray-200 text-gray-700 hover:bg-gray-300 text-md text-center"
+            className="border cursor-pointer rounded-sm p-0.5 border-gray-200 transition-all text-md mx-5 px-3 bg-gray-200 text-gray-700 hover:bg-gray-300 text-center"
           >
             Clear
           </button>
         </div>
 
+        {/* Table */}
         <form className="p-2 w-8xl mx-3">
           <div className="bg-white shadow rounded-sm p-6">
-            {/* <div className="overflow-x-auto">
-              <table className="min-w-full w-8xl border border-gray-200 text-sm text-left custom-scroll"> */}
-
-     <div className="overflow-x-auto overflow-y-scroll max-h-[500px] custom-scroll " style={{overflowX: 'scroll'}}>
-                <table className="w-full text-sm w-8xl border border-gray-200 text-left custom-scroll">
-                
-                <thead className="bg-gray-50  border-b border-gray-200  text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <div className="overflow-x-auto overflow-y-scroll max-h-[500px] custom-scroll" style={{ overflowX: "scroll" }}>
+              <table className="w-full text-sm border border-gray-200 text-left">
+                <thead className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   <tr>
                     <th className="px-3 py-2 text-center">#</th>
-                    <th className="px-4 py-2">Company Name </th>
-                    <th className="px-4 py-2">Customer Name </th>
-                    <th className="px-4 py-2">Email </th>
+                    <th className="px-4 py-2">Company Name</th>
+                    <th className="px-4 py-2">Customer Name</th>
+                    <th className="px-4 py-2">Email</th>
                     <th className="px-4 py-2">Mobile No.</th>
                     <th className="px-4 py-2">Customer Type</th>
-                    <th className="px-4 py-2">Website </th>
-                    <th className="px-4 py-2">Industry </th>
+                    <th className="px-4 py-2">Website</th>
+                    <th className="px-4 py-2">Industry</th>
                     <th className="px-4 py-2">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {currentData.length > 0 ? (
                     currentData.map((row, index) => (
-                      <tr
-                        key={index}
-                        className="border-b border-gray-100 hover:bg-gray-50"
-                      >
-                        <td className="px-3 py-2">
-                          {indexOfFirstItem + index + 1}
-                        </td>
+                      <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="px-3 py-2">{indexOfFirstItem + index + 1}</td>
                         <td className="px-4 py-2">{row.company_name}</td>
-                        <td className="px-4 py-2 text-orange-500">
-                          {row.customer_name}
-                        </td>
+                        <td className="px-4 py-2 text-orange-500">{row.customer_name}</td>
                         <td className="px-4 py-2">{row.email}</td>
                         <td className="px-4 py-2">{row.mobile}</td>
                         <td className="px-4 py-2">{row.customer_type}</td>
                         <td className="px-4 py-2">{row.website}</td>
                         <td className="px-4 py-2">{row.industry_name}</td>
-                        <td className="py-2 px-4  text-lg">
-                          {/* <button
-                            type="button"
-                            className="text-gray-400 hover:text-green-600 cursor-pointer"
-                          >
-                            <i className="bi bi-eye text-xl"></i>
-                          </button> */}
+                        <td className="py-2 px-4 text-lg">
                           <button
                             type="button"
-                            onClick={() =>
-                              setViewModal({ open: true, data: row })
-                            }
+                            onClick={() => setViewModal({ open: true, data: row })}
                             className="text-gray-400 hover:text-green-600 cursor-pointer"
                           >
                             <i className="bi bi-eye text-xl"></i>
                           </button>
-
                           <button
                             type="button"
                             onClick={() => {
-                              localStorage.setItem(
-                                "customer_edit_id",
-                                JSON.stringify(row.id),
-                              );
+                              localStorage.setItem("customer_edit_id", JSON.stringify(row.id));
                               router.push("/edit-customer");
                             }}
                             className="text-gray-400 hover:text-blue-700 mx-2 cursor-pointer"
                           >
                             <i className="bi bi-pencil-square"></i>
                           </button>
-
                           <button
                             type="button"
-                            onClick={() =>
-                              setDeleteModal({
-                                open: true,
-                                id: row.id,
-                                name: row.customer_name,
-                              })
-                            }
+                            onClick={() => setDeleteModal({ open: true, id: row.id, name: row.customer_name })}
                             className="text-gray-400 hover:text-red-600 cursor-pointer"
                           >
                             <i className="bi bi-trash3"></i>
@@ -336,10 +281,7 @@ export default function CustomerList() {
                     ))
                   ) : (
                     <tr>
-                      <td
-                        colSpan="9"
-                        className="text-center py-4 text-gray-500"
-                      >
+                      <td colSpan="9" className="text-center py-4 text-gray-500">
                         No data found
                       </td>
                     </tr>
@@ -351,7 +293,6 @@ export default function CustomerList() {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-6 py-3 border-gray-200 bg-white rounded-b-lg">
-                {/* Previous Button */}
                 <button
                   type="button"
                   onClick={() => handlePageChange(currentPage - 1)}
@@ -360,14 +301,10 @@ export default function CustomerList() {
                 >
                   Previous
                 </button>
-
-                {/* Page Info Centered */}
                 <span className="text-sm text-gray-600">
                   Page <span className="font-semibold">{currentPage}</span> of{" "}
                   <span className="font-semibold">{totalPages}</span>
                 </span>
-
-                {/* Next Button */}
                 <button
                   type="button"
                   onClick={() => handlePageChange(currentPage + 1)}
@@ -382,13 +319,11 @@ export default function CustomerList() {
         </form>
       </div>
 
-      {/* Delete Modal` */}
+      {/* Delete Modal */}
       {deleteModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/30">
-          <div className="bg-white rounded-sm shadow-xl w-full max-w-sm  border border-gray-100 overflow-hidden">
-            {/* <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <div className="flex items-center gap-2"> */}
-            <div className="flex justify-between items-center px-6 py-4  bg-gradient-to-r from-orange-100 to-white">
+          <div className="bg-white rounded-sm shadow-xl w-full max-w-sm border border-gray-100 overflow-hidden">
+            <div className="flex justify-between items-center px-6 py-4 bg-gradient-to-r from-orange-100 to-white">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-orange-500 inline-block"></span>
                 <span className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
@@ -396,41 +331,27 @@ export default function CustomerList() {
                 </span>
               </div>
               <button
-                onClick={() =>
-                  setDeleteModal({ open: false, id: null, name: "" })
-                }
-                className="w-7 h-7 flex items-center justify-center  text-orange-500 text-md"
+                onClick={() => setDeleteModal({ open: false, id: null, name: "" })}
+                className="w-7 h-7 flex items-center justify-center text-orange-500 text-md"
               >
                 ✕
               </button>
             </div>
             <div className="p-6 text-center">
               <div className="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-orange-400"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={1.8}
-                  viewBox="0 0 24 24"
-                >
+                <svg className="w-8 h-8 text-orange-400" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
                   <polyline points="3 6 5 6 21 6" />
                   <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
                   <path d="M10 11v6M14 11v6" />
                   <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
                 </svg>
               </div>
-              <p className="font-semibold text-gray-800 text-base mb-1">
-                {deleteModal.name}
-              </p>
-              <p className="text-sm text-gray-400">
-                This action cannot be undone. Are you sure?
-              </p>
+              <p className="font-semibold text-gray-800 text-base mb-1">{deleteModal.name}</p>
+              <p className="text-sm text-gray-400">This action cannot be undone. Are you sure?</p>
             </div>
             <div className="flex gap-3 px-5 pb-5">
               <button
-                onClick={() =>
-                  setDeleteModal({ open: false, id: null, name: "" })
-                }
+                onClick={() => setDeleteModal({ open: false, id: null, name: "" })}
                 className="flex-1 px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-sm hover:bg-gray-50 transition-colors"
               >
                 Cancel
@@ -448,126 +369,81 @@ export default function CustomerList() {
           </div>
         </div>
       )}
+
       {/* View Customer Modal */}
       {viewModal.open && viewModal.data && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/30 ">
-          <div className="bg-white rounded-sm shadow-xl w-full max-w-2xl overflow-hidden border border-gray-100 ">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-3 from-orange-100 to-white bg-gradient-to-r ">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/30">
+          <div className="bg-white rounded-sm shadow-xl w-full max-w-2xl overflow-hidden border border-gray-100">
+            <div className="flex items-center justify-between px-6 py-3 from-orange-100 to-white bg-gradient-to-r">
               <div className="flex items-center gap-3">
-                <div className="w-7 h-7  flex items-center justify-center">
+                <div className="w-7 h-7 flex items-center justify-center">
                   <i className="bi bi-person text-orange-500 text-md"></i>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
                     {viewModal.data.customer_name}
                   </p>
-                  <p className="text-gray-400 text-md">
-                    {viewModal.data.customer_type}
-                  </p>
+                  <p className="text-gray-400 text-md">{viewModal.data.customer_type}</p>
                 </div>
               </div>
               <button
                 onClick={() => setViewModal({ open: false, data: null })}
-                className="w-7 h-7 flex items-center justify-center  text-orange-500 text-md"
+                className="w-7 h-7 flex items-center justify-center text-orange-500 text-md"
               >
                 ✕
               </button>
             </div>
-
-            {/* Body */}
             <div className="p-6 grid grid-cols-2 gap-4">
-              {/* Company*/}
               <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-center gap-3">
                 <i className="bi bi-building text-orange-400 text-lg"></i>
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">
-                    Company
-                  </p>
-                  <p className="text-sm font-semibold text-gray-700">
-                    {viewModal.data.company_name || "—"}
-                  </p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide">Company</p>
+                  <p className="text-sm font-semibold text-gray-700">{viewModal.data.company_name || "—"}</p>
                 </div>
               </div>
-
-              {/* Customer Name */}
               <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-center gap-3">
                 <i className="bi bi-person-circle text-orange-400 text-lg"></i>
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">
-                    Customer Name
-                  </p>
-                  <p className="text-sm font-semibold text-gray-700">
-                    {viewModal.data.customer_name || "—"}
-                  </p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide">Customer Name</p>
+                  <p className="text-sm font-semibold text-gray-700">{viewModal.data.customer_name || "—"}</p>
                 </div>
               </div>
-              {/* Email */}
               <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-center gap-3">
                 <i className="bi bi-envelope text-orange-400 text-lg"></i>
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">
-                    Email
-                  </p>
-                  <p className="text-sm font-semibold text-gray-700 break-all">
-                    {viewModal.data.email || "—"}
-                  </p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide">Email</p>
+                  <p className="text-sm font-semibold text-gray-700 break-all">{viewModal.data.email || "—"}</p>
                 </div>
               </div>
-              {/* Mobile */}
               <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-center gap-3">
                 <i className="bi bi-telephone text-orange-400 text-lg"></i>
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">
-                    Mobile
-                  </p>
-                  <p className="text-sm font-semibold text-gray-700">
-                    {viewModal.data.mobile || "—"}
-                  </p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide">Mobile</p>
+                  <p className="text-sm font-semibold text-gray-700">{viewModal.data.mobile || "—"}</p>
                 </div>
               </div>
-
-              {/* Customer Type */}
               <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-center gap-3">
                 <i className="bi bi-tag text-orange-400 text-lg"></i>
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">
-                    Customer Type
-                  </p>
-                  <p className="text-sm font-semibold text-gray-700">
-                    {viewModal.data.customer_type || "—"}
-                  </p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide">Customer Type</p>
+                  <p className="text-sm font-semibold text-gray-700">{viewModal.data.customer_type || "—"}</p>
                 </div>
               </div>
-
-              {/* Website */}
               <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-center gap-3">
                 <i className="bi bi-globe text-orange-400 text-lg"></i>
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">
-                    Website
-                  </p>
-                  <p className="text-sm font-semibold text-gray-700">
-                    {viewModal.data.website || "—"}
-                  </p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide">Website</p>
+                  <p className="text-sm font-semibold text-gray-700">{viewModal.data.website || "—"}</p>
                 </div>
               </div>
-
-              {/* Industry */}
               <div className="bg-gray-50 rounded-sm px-4 py-3 flex items-center gap-3">
                 <i className="bi bi-briefcase text-orange-400 text-lg"></i>
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">
-                    Industry
-                  </p>
-                  <p className="text-sm font-semibold text-gray-700">
-                    {viewModal.data.industry_name || "—"}
-                  </p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide">Industry</p>
+                  <p className="text-sm font-semibold text-gray-700">{viewModal.data.industry_name || "—"}</p>
                 </div>
               </div>
             </div>
-
-            {/* Footer */}
             <div className="px-6 pb-5 flex justify-end gap-3">
               <button
                 onClick={() => setViewModal({ open: false, data: null })}
