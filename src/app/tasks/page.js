@@ -39,6 +39,8 @@ export default function Page() {
   const [token, setToken] = useState("");
   const [task, setTask] = useState([]);
   const [filters, setFilters] = useState({});
+  const [showTaskDeleteModal, setShowTaskDeleteModal] = useState(false);
+  const [taskDeleteId, setTaskDeleteId] = useState(null);
 
   const [showExportMenu, setShowExportMenu] = useState(false);
 
@@ -340,6 +342,27 @@ const exportToPDF = async () => {
 
     setShowForm(false);
     fetchData();
+  };
+  const handleDelete = (id) => {
+    setTaskDeleteId(id);
+    setShowTaskDeleteModal(true);
+  };
+
+  const confirmTaskDelete = async () => {
+    try {
+      await axios.delete(`${APIBase}/delete-task/${taskDeleteId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success("Task deleted successfully");
+      // ✅ Remove from UI instantly
+      setTasks((prev) => prev.filter((t) => t.id !== taskDeleteId));
+    } catch (err) {
+      console.log(err);
+      toast.error("Failed to delete task");
+    } finally {
+      setShowTaskDeleteModal(false);
+      setTaskDeleteId(null);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -843,8 +866,11 @@ const exportToPDF = async () => {
         {/* <div className="bg-white shadow-md rounded-sm p-1 border border-gray-200">
           <table className=" w-full text-sm text-left text-gray-700 border-collapse mt-2 mb-2"> */}
 
-             <div className="overflow-x-auto overflow-y-scroll max-h-[500px] custom-scroll p-1 bg-white" style={{overflowX: 'scroll'}}>
-                <table className="w-full text-sm  text-left text-gray-700 border-collapse mt-2 mb-2">
+        <div
+          className="overflow-x-auto overflow-y-scroll max-h-[500px] custom-scroll p-1 bg-white"
+          style={{ overflowX: "scroll" }}
+        >
+          <table className="w-full text-sm  text-left text-gray-700 border-collapse mt-2 mb-2">
             <thead className="uppercase font-semibold text-xs tracking-wider bg-gray-50 border-b border-gray-100 text-gray-400">
               <tr>
                 <th className="py-3 px-5 w-10">#</th>
@@ -1541,6 +1567,62 @@ const exportToPDF = async () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Task Delete Confirmation Modal */}
+      {showTaskDeleteModal && (
+        <div className="fixed inset-0 bg-gray-900/40 z-50 flex justify-center items-center">
+          <div className="bg-white rounded-xl shadow-xl w-[380px] relative overflow-hidden">
+            {/* Header */}
+            <div className="bg-orange-50 px-5 py-3 flex items-center justify-between border-b border-orange-100">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-orange-500 inline-block"></span>
+                <span className="text-xs font-bold tracking-widest text-gray-700 uppercase">
+                  Delete Task
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTaskDeleteModal(false)}
+                className="text-orange-400 hover:text-orange-600 text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-6 flex flex-col items-center">
+              <div className="bg-orange-100 rounded-full p-4 mb-4">
+                <i className="bi bi-trash3 text-orange-500 text-2xl"></i>
+              </div>
+              <h3 className="text-center text-base font-bold text-gray-800 mb-1 uppercase tracking-wide">
+                {tasks.find((t) => t.id === taskDeleteId)?.task_name ||
+                  "This Task"}
+              </h3>
+              <p className="text-center text-sm text-gray-400 mb-6">
+                This action cannot be undone. Are you sure?
+              </p>
+
+              {/* Buttons */}
+              <div className="flex gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={() => setShowTaskDeleteModal(false)}
+                  className="flex-1 py-2.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition-all text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmTaskDelete}
+                  className="flex-1 py-2.5 rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-all text-sm font-bold"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         </div>

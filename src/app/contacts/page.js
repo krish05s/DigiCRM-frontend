@@ -36,6 +36,10 @@ export default function Page() {
   const [companyname, setCompanyname] = useState([]);
   const [customername, setCustomername] = useState([]);
   const [scrollOffsets, setScrollOffsets] = useState({});
+  // Add this new state (separate from form's customername)
+  const [filterCustomernames, setFilterCustomernames] = useState([]);
+  const [deleteId, setDeleteId] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const API_base = `${API_BASE}/api/contacts`;
 
@@ -77,6 +81,47 @@ export default function Page() {
       .then((res) => setCompanyname(res.data.data || res.data))
       .catch(() => setCompanyname([]));
   }, []);
+  // Add this useEffect to load all customers initially for the filter dropdown
+  useEffect(() => {
+    axios
+      .get(`${API_BASE}/api/customers/customer-name`, {
+        params: { company_name: "" },
+      })
+      .then((res) =>
+        // ✅ Filter out null/empty customer names
+        setFilterCustomernames(
+          (res.data.data || []).filter((item) => item.customer_name?.trim()),
+        ),
+      )
+      .catch(() => setFilterCustomernames([]));
+  }, []);
+  const fetchFilterCustomersByCompany = async (companyId) => {
+    if (!companyId) {
+      try {
+        const res = await axios.get(`${API_BASE}/api/customers/customer-name`, {
+          params: { company_name: "" },
+        });
+        // ✅ Filter out null/empty customer names
+        setFilterCustomernames(
+          (res.data.data || []).filter((item) => item.customer_name?.trim()),
+        );
+      } catch {
+        setFilterCustomernames([]);
+      }
+      return;
+    }
+    try {
+      const res = await axios.get(`${API_BASE}/api/customers/customer-name`, {
+        params: { company_name: companyId },
+      });
+      // ✅ Filter out null/empty customer names
+      setFilterCustomernames(
+        (res.data.data || []).filter((item) => item.customer_name?.trim()),
+      );
+    } catch {
+      setFilterCustomernames([]);
+    }
+  };
 
   const fetchCustomersByCompany = async (companyId) => {
     if (!companyId) {
@@ -99,11 +144,11 @@ export default function Page() {
     setFilters((p) => ({ ...p, [name]: value }));
   };
 
-  const handleFilterCompanyChange = async (e) => {
-    const companyId = e.target.value;
-    setFilters((p) => ({ ...p, company_name: companyId, customer_name: "" }));
-    await fetchCustomersByCompany(companyId);
-  };
+ const handleFilterCompanyChange = async (e) => {
+   const companyId = e.target.value;
+   setFilters((p) => ({ ...p, company_name: companyId, customer_name: "" }));
+   await fetchFilterCustomersByCompany(companyId); // ← uses filter-specific fetch
+ };
 
   const handleFormCompanyChange = async (e) => {
     const companyId = e.target.value;
@@ -170,10 +215,27 @@ export default function Page() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Are you sure?")) return;
-    await axios.delete(`${API_base}/delete/${id}`);
-    fetchData();
+  const handleDeleteClick = (id) => {
+    setDeleteId(id);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await axios.delete(`${API_base}/delete/${deleteId}`);
+      toast.success("Contact deleted successfully");
+      fetchData();
+    } catch {
+      toast.error("Failed to delete contact");
+    } finally {
+      setShowDeleteModal(false);
+      setDeleteId(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false);
+    setDeleteId(null);
   };
 
   /* ---------------- PAGINATION ---------------- */
@@ -236,12 +298,12 @@ export default function Page() {
         </div>
 
         {/* Filters */}
-        <div className="mx-6">
+        <div className="mx-6 mb-3 flex items-center gap-2 flex-nowrap">
           <select
             name="company_name"
             value={filters.company_name}
             onChange={handleFilterCompanyChange}
-            className="mx-2 bg-white text-gray-300 w-53 p-2 border border-gray-300 rounded-sm outline-none focus:ring-1 focus:ring-orange-200"
+            className="border bg-white border-gray-300 rounded-sm px-3 py-2 w-54 mx-2 focus:ring-orange-200 outline-none focus:ring-1  text-gray-500"
           >
             <option value="">Select Company Name</option>
             {companyname.map((item) => (
@@ -255,21 +317,23 @@ export default function Page() {
             name="customer_name"
             value={filters.customer_name}
             onChange={handleFilterChange}
-            className="mx-2 bg-white text-gray-300 w-53 p-2 border border-gray-300 rounded-sm outline-none focus:ring-1 focus:ring-orange-200"
+            className="border bg-white border-gray-300 rounded-sm px-2 py-2 flex-1 min-w-0 focus:ring-orange-200 outline-none focus:ring-1 text-gray-500 text-sm"
           >
             <option value="">Select Customer Name</option>
-            {customername.map((item) => (
-              <option key={item.id} value={item.customer_name}>
-                {item.customer_name}
-              </option>
-            ))}
+            {filterCustomernames.map((item) =>
+              item.customer_name?.trim() ? ( // ✅ extra safety guard
+                <option key={item.id} value={item.customer_name}>
+                  {item.customer_name}
+                </option>
+              ) : null,
+            )}
           </select>
 
           <input
             type="text"
             name="contact_person"
             placeholder="Enter Contact Person"
-            className="p-2 w-53 mb-3 border border-gray-300 text-gray-400 bg-white rounded-sm mx-2 outline-none focus:ring-1 focus:ring-orange-200 "
+            className="border bg-white border-gray-300 rounded-sm px-3 py-2 w-54 mx-2 focus:ring-orange-200 outline-none focus:ring-1"
             value={filters.contact_person}
             onChange={handleFilterChange}
           />
@@ -278,7 +342,7 @@ export default function Page() {
             type="text"
             name="contact_number"
             placeholder="Enter Contact Number"
-            className="p-2 w-53 mb-3 border border-gray-300 text-gray-400 bg-white rounded-sm mx-2 outline-none focus:ring-1 focus:ring-orange-200"
+            className="border bg-white border-gray-300 rounded-sm px-3 py-2 w-54 mx-2 focus:ring-orange-200 outline-none focus:ring-1 "
             value={filters.contact_number}
             onChange={handleFilterChange}
           />
@@ -287,7 +351,7 @@ export default function Page() {
             type="text"
             name="email"
             placeholder="Enter email"
-            className="p-2 w-53 mb-3 border border-gray-300 text-gray-400 bg-white rounded-sm mx-2 outline-none focus:ring-1 focus:ring-orange-200"
+            className="border bg-white border-gray-300 rounded-sm px-3 py-2 w-54 mx-2 focus:ring-orange-200 outline-none focus:ring-1"
             value={filters.email}
             onChange={handleFilterChange}
           />
@@ -296,7 +360,7 @@ export default function Page() {
             name="contact_designation"
             value={filters.contact_designation}
             onChange={handleFilterChange}
-            className="mx-2 bg-white text-gray-300 w-56 p-2 border border-gray-300 rounded-sm outline-none focus:ring-1 focus:ring-orange-200"
+            className="border bg-white border-gray-300 rounded-sm px-3 py-2 w-54 mx-2 focus:ring-orange-200 outline-none focus:ring-1  text-gray-500"
           >
             <option value="">Select Contact Designation</option>
             {designations.map((item) => (
@@ -330,10 +394,7 @@ export default function Page() {
           {/* <div className="bg-white shadow-md rounded-2xl p-1 border border-gray-200">
                         <table className=" w-full text-sm text-left text-gray-700 border-collapse mt-2 mb-2 custom-scroll"> */}
 
-          <div
-            className="overflow-x-auto overflow-y-scroll max-h-[500px] custom-scroll bg-white shadow-md rounded-sm p-1 border border-gray-200"
-        
-          >
+          <div className="overflow-x-auto overflow-y-scroll max-h-[500px] custom-scroll bg-white shadow-md rounded-sm p-1 border border-gray-200">
             <table className="w-full text-sm text-left text-gray-700 border-collapse mt-2 mb-2">
               <thead className="  border-b border-gray-200  text-xs font-semibold text-gray-400 uppercase tracking-wider bg-gray-50">
                 <tr>
@@ -380,7 +441,7 @@ export default function Page() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDelete(item.id)}
+                          onClick={() => handleDeleteClick(item.id)} // ← changed
                           className="text-gray-400 hover:text-red-600"
                         >
                           <i className="bi bi-trash3"></i>
@@ -562,6 +623,66 @@ export default function Page() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-gray-900/40 z-50 flex justify-center items-center">
+            <div className="bg-white rounded-xl shadow-xl w-[380px] relative overflow-hidden">
+              {/* Header */}
+              <div className="bg-orange-50 px-5 py-3 flex items-center justify-between border-b border-orange-100">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-orange-500 inline-block"></span>
+                  <span className="text-xs font-bold tracking-widest text-gray-700 uppercase">
+                    Delete Contact
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDeleteCancel}
+                  className="text-orange-400 hover:text-orange-600 text-lg font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="px-6 py-6 flex flex-col items-center">
+                {/* Trash Icon */}
+                <div className="bg-orange-100 rounded-full p-4 mb-4">
+                  <i className="bi bi-trash3 text-orange-500 text-2xl"></i>
+                </div>
+
+                {/* Contact Name */}
+                <h3 className="text-center text-base font-bold text-gray-800 mb-1 uppercase tracking-wide">
+                  {contacts.find((c) => c.id === deleteId)?.contact_person ||
+                    "This Contact"}
+                </h3>
+
+                {/* Subtext */}
+                <p className="text-center text-sm text-gray-400 mb-6">
+                  This action cannot be undone. Are you sure?
+                </p>
+
+                {/* Buttons */}
+                <div className="flex gap-3 w-full">
+                  <button
+                    type="button"
+                    onClick={handleDeleteCancel}
+                    className="flex-1 py-2.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition-all text-sm font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeleteConfirm}
+                    className="flex-1 py-2.5 rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-all text-sm font-bold"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

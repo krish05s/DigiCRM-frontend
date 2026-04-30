@@ -832,7 +832,9 @@ export default function QuotationPage() {
           >
             <option value="">Select Assignee</option>
             {asignee.map((item) => (
-              <option key={item.value} value={item.value}>{item.label}</option>
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
             ))}
           </select>
           <select
@@ -1132,56 +1134,69 @@ export default function QuotationPage() {
 
                           <td className="px-3 text-center">
                             <div className="flex items-center justify-center gap-2">
-                              {q.displayStatus === "Won" && q.latest_quotation_id && (() => {
-                                const percentage = Number(q.proforma_percentage || 0);
-                                if (!q.pi_exists || percentage === 0) {
-                                  return (
-                                    <button
-                                      onClick={() => {
-                                        setSelectedPIQuotation(q);
-                                        setPiPercentage("");
-                                        setPiRupees("");
-                                        setShowPIModal(true);
-                                      }}
-                                      className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all shadow-sm whitespace-nowrap"
-                                      title="Create Proforma Invoice"
-                                    >
-                                      <i className="bi bi-file-earmark-plus text-sm"></i>
-                                    </button>
+                              {q.displayStatus === "Won" &&
+                                q.latest_quotation_id &&
+                                (() => {
+                                  const percentage = Number(
+                                    q.proforma_percentage || 0,
                                   );
-                                }
-                                if (percentage > 0 && percentage < 100) {
-                                  return (
-                                    <button
-                                      disabled
-                                      className="flex items-center gap-1 bg-gray-300 text-gray-600 text-xs font-semibold px-2.5 py-1.5 rounded-lg cursor-not-allowed whitespace-nowrap"
-                                      title={`PI In Progress (${percentage}%)`}
-                                    >
-                                      <i className="bi bi-hourglass-split text-sm"></i>
-                                      {percentage}%
-                                    </button>
-                                  );
-                                }
-                                if (percentage === 100) {
-                                  return (
-                                    <span
-                                      className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-300 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap"
-                                      title="Proforma Invoice Completed"
-                                    >
-                                      <i className="bi bi-check-circle-fill text-emerald-500"></i>
-                                      Completed
-                                    </span>
-                                  );
-                                }
-                              })()}
+                                  if (!q.pi_exists || percentage === 0) {
+                                    return (
+                                      <button
+                                        onClick={() => {
+                                          setSelectedPIQuotation(q);
+                                          setPiPercentage("");
+                                          setPiRupees("");
+                                          setShowPIModal(true);
+                                        }}
+                                        className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-all shadow-sm whitespace-nowrap"
+                                        title="Create Proforma Invoice"
+                                      >
+                                        <i className="bi bi-file-earmark-plus text-sm"></i>
+                                      </button>
+                                    );
+                                  }
+                                  if (percentage > 0 && percentage < 100) {
+                                    return (
+                                      <button
+                                        disabled
+                                        className="flex items-center gap-1 bg-gray-300 text-gray-600 text-xs font-semibold px-2.5 py-1.5 rounded-lg cursor-not-allowed whitespace-nowrap"
+                                        title={`PI In Progress (${percentage}%)`}
+                                      >
+                                        <i className="bi bi-hourglass-split text-sm"></i>
+                                        {percentage}%
+                                      </button>
+                                    );
+                                  }
+                                  if (percentage === 100) {
+                                    return (
+                                      <span
+                                        className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-300 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap"
+                                        title="Proforma Invoice Completed"
+                                      >
+                                        <i className="bi bi-check-circle-fill text-emerald-500"></i>
+                                        Completed
+                                      </span>
+                                    );
+                                  }
+                                })()}
 
                               {q.latest_quotation_id ? (
-                                (q.displayStatus === "Won" || q.displayStatus === "Lost") ? (
-                                  <div className="text-gray-300 w-8 h-8 rounded-full flex items-center justify-center" title="Locked">
+                                q.displayStatus === "Won" ||
+                                q.displayStatus === "Lost" ? (
+                                  <div
+                                    className="text-gray-300 w-8 h-8 rounded-full flex items-center justify-center"
+                                    title="Locked"
+                                  >
                                     <i className="bi bi-lock-fill"></i>
                                   </div>
                                 ) : (
-                                  <button onClick={() => openDeleteModal(q.latest_quotation_id)} className="text-gray-400 hover:text-red-600 cursor-pointer">
+                                  <button
+                                    onClick={() =>
+                                      openDeleteModal(q.latest_quotation_id)
+                                    }
+                                    className="text-gray-400 hover:text-red-600 cursor-pointer"
+                                  >
                                     <i className="bi bi-trash3 text-lg"></i>
                                   </button>
                                 )
@@ -1206,7 +1221,6 @@ export default function QuotationPage() {
                 {/* ======================== PAGINATION WITH DROPDOWN ======================== */}
                 {filteredQuotations.length > 0 && (
                   <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-white rounded-b-lg mt-2">
-
                     {/* Left: Records per page + total count */}
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <span>Show</span>
@@ -1228,13 +1242,18 @@ export default function QuotationPage() {
                         records &nbsp;|&nbsp; Showing{" "}
                         <span className="font-semibold text-gray-700">
                           {(currentPage - 1) * itemsPerPage + 1}
-                        </span>
-                        {" "}–{" "}
+                        </span>{" "}
+                        –{" "}
                         <span className="font-semibold text-gray-700">
-                          {Math.min(currentPage * itemsPerPage, filteredQuotations.length)}
+                          {Math.min(
+                            currentPage * itemsPerPage,
+                            filteredQuotations.length,
+                          )}
+                        </span>{" "}
+                        of{" "}
+                        <span className="font-semibold text-gray-700">
+                          {filteredQuotations.length}
                         </span>
-                        {" "}of{" "}
-                        <span className="font-semibold text-gray-700">{filteredQuotations.length}</span>
                       </span>
                     </div>
 
@@ -1250,8 +1269,9 @@ export default function QuotationPage() {
                           Previous
                         </button>
                         <span className="text-sm text-gray-600">
-                          Page <span className="font-semibold">{currentPage}</span> of{" "}
-                          <span className="font-semibold">{totalPages}</span>
+                          Page{" "}
+                          <span className="font-semibold">{currentPage}</span>{" "}
+                          of <span className="font-semibold">{totalPages}</span>
                         </span>
                         <button
                           type="button"
@@ -1266,7 +1286,6 @@ export default function QuotationPage() {
                   </div>
                 )}
                 {/* ======================== END PAGINATION ======================== */}
-
               </div>
             )}
           </div>
@@ -1347,7 +1366,9 @@ export default function QuotationPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Assignee</label>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Assignee
+                      </label>
                       <Select
                         isMulti
                         instanceId="assignee-select"
@@ -1537,7 +1558,9 @@ export default function QuotationPage() {
                     ) : (
                       <>
                         <i className="bi bi-floppy2-fill"></i>
-                        {editingId ? "Update Quotation" : "Save Quotation Activity"}
+                        {editingId
+                          ? "Update Quotation"
+                          : "Save Quotation Activity"}
                       </>
                     )}
                   </button>
@@ -1670,13 +1693,14 @@ export default function QuotationPage() {
                                     <i className="bi bi-pencil-square"></i>
                                   </button>
                                 )}
-                              <button
-                                onClick={() => handleDeleteQuotation(item.id)}
-                                className="text-gray-400 hover:text-red-600 transition-colors p-1"
-                                title="Delete Quotation Activity"
-                              >
-                                <i className="bi bi-trash"></i>
-                              </button>
+                              {/* DELETE IN HISTORY - COMMENTED OUT (will be enabled later) */}
+                              {/* <button
+  onClick={() => handleDeleteQuotation(item.id)}
+  className="text-gray-400 hover:text-red-600 transition-colors p-1"
+  title="Delete Quotation Activity"
+>
+  <i className="bi bi-trash"></i>
+</button> */}
                             </div>
                           </div>
                           <div className="mt-2 grid grid-cols-2 gap-4 bg-gray-50 p-2.5 rounded-lg border border-gray-100 text-sm">
@@ -1910,8 +1934,12 @@ export default function QuotationPage() {
       {showStatusModal && (
         <div className="fixed inset-0 bg-gray-900/30 flex items-center justify-center backdrop-blur-sm z-50">
           <div className="bg-white rounded-lg shadow-lg p-6 w-80">
-            <h2 className="text-lg font-semibold text-gray-800 mb-2">Confirm Status Change</h2>
-            <p className="text-gray-500 text-sm mb-6">Are you sure you want to change status?</p>
+            <h2 className="text-lg font-semibold text-gray-800 mb-2">
+              Confirm Status Change
+            </h2>
+            <p className="text-gray-500 text-sm mb-6">
+              Are you sure you want to change status?
+            </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowStatusModal(false)}
@@ -1969,7 +1997,6 @@ export default function QuotationPage() {
 
             {/* Body */}
             <div className="p-6 space-y-4">
-
               {/* Quotation Info */}
               <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-2">
                 <div className="flex justify-between text-sm">
@@ -1994,7 +2021,10 @@ export default function QuotationPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Grand Total</span>
                   <span className="font-bold text-emerald-600 text-lg">
-                    ₹ {piGrandTotal ? Number(piGrandTotal).toLocaleString("en-IN") : "0"}
+                    ₹{" "}
+                    {piGrandTotal
+                      ? Number(piGrandTotal).toLocaleString("en-IN")
+                      : "0"}
                   </span>
                 </div>
               </div>
@@ -2013,14 +2043,20 @@ export default function QuotationPage() {
                       value={piPercentage}
                       onChange={(e) => {
                         const val = e.target.value;
-                        if (val === "") { handlePiPercentageChange(""); return; }
+                        if (val === "") {
+                          handlePiPercentageChange("");
+                          return;
+                        }
                         const num = Number(val);
-                        if (num >= 0 && num <= 100) handlePiPercentageChange(num);
+                        if (num >= 0 && num <= 100)
+                          handlePiPercentageChange(num);
                       }}
                       className="w-full border border-gray-200 rounded-xl pl-3 pr-8 py-2.5 text-sm focus:ring-1 focus:ring-emerald-300 focus:border-transparent outline-none bg-gray-50 transition-all"
                       placeholder="0"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">%</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">
+                      %
+                    </span>
                   </div>
                 </div>
 
@@ -2029,14 +2065,19 @@ export default function QuotationPage() {
                     Amount <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">₹</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">
+                      ₹
+                    </span>
                     <input
                       type="number"
                       min="0"
                       value={piRupees}
                       onChange={(e) => {
                         const val = e.target.value;
-                        if (val === "") { handlePiRupeesChange(""); return; }
+                        if (val === "") {
+                          handlePiRupeesChange("");
+                          return;
+                        }
                         handlePiRupeesChange(Number(val));
                       }}
                       className="w-full border border-gray-200 rounded-xl pl-7 pr-3 py-2.5 text-sm focus:ring-1 focus:ring-emerald-300 focus:border-transparent outline-none bg-gray-50 transition-all"
@@ -2048,47 +2089,57 @@ export default function QuotationPage() {
 
               {/* REMAINING CARD */}
               {piGrandTotal > 0 && (
-                <div className={`rounded-xl p-3 border transition-all ${
-                  piIsOver
-                    ? "bg-red-50 border-red-200"
-                    : piEnteredPct === 100
-                    ? "bg-green-50 border-green-200"
-                    : piEnteredPct > 0
-                    ? "bg-emerald-50 border-emerald-200"
-                    : "bg-blue-50 border-blue-100"
-                }`}>
+                <div
+                  className={`rounded-xl p-3 border transition-all ${
+                    piIsOver
+                      ? "bg-red-50 border-red-200"
+                      : piEnteredPct === 100
+                        ? "bg-green-50 border-green-200"
+                        : piEnteredPct > 0
+                          ? "bg-emerald-50 border-emerald-200"
+                          : "bg-blue-50 border-blue-100"
+                  }`}
+                >
                   <p className="text-xs font-bold uppercase tracking-wider mb-2 text-gray-500">
-                    {piEnteredPct > 0 ? "Remaining After This Entry" : "Total Available"}
+                    {piEnteredPct > 0
+                      ? "Remaining After This Entry"
+                      : "Total Available"}
                   </p>
                   <div className="flex justify-between items-center">
                     <div className="text-center">
-                      <p className={`text-xl font-bold ${
-                        piIsOver ? "text-red-600"
-                        : piEnteredPct === 100 ? "text-green-600"
-                        : "text-emerald-600"
-                      }`}>
+                      <p
+                        className={`text-xl font-bold ${
+                          piIsOver
+                            ? "text-red-600"
+                            : piEnteredPct === 100
+                              ? "text-green-600"
+                              : "text-emerald-600"
+                        }`}
+                      >
                         {piIsOver
                           ? "Over!"
                           : piEnteredPct > 0
-                          ? `${parseFloat(piRemainingPct.toFixed(2))}%`
-                          : "100%"
-                        }
+                            ? `${parseFloat(piRemainingPct.toFixed(2))}%`
+                            : "100%"}
                       </p>
                       <p className="text-xs text-gray-400">Percentage</p>
                     </div>
                     <div className="w-px h-10 bg-gray-200"></div>
                     <div className="text-center">
-                      <p className={`text-xl font-bold ${
-                        piIsOver ? "text-red-600"
-                        : piEnteredPct === 100 ? "text-green-600"
-                        : "text-emerald-600"
-                      }`}>
+                      <p
+                        className={`text-xl font-bold ${
+                          piIsOver
+                            ? "text-red-600"
+                            : piEnteredPct === 100
+                              ? "text-green-600"
+                              : "text-emerald-600"
+                        }`}
+                      >
                         {piIsOver
                           ? "Over!"
                           : piEnteredPct > 0
-                          ? `₹${Number(piRemainingAmt).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
-                          : `₹${Number(piGrandTotal).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
-                        }
+                            ? `₹${Number(piRemainingAmt).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
+                            : `₹${Number(piGrandTotal).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`}
                       </p>
                       <p className="text-xs text-gray-400">Amount</p>
                     </div>
@@ -2099,16 +2150,20 @@ export default function QuotationPage() {
                     <div className="w-full bg-white rounded-full h-2 border border-gray-200 overflow-hidden">
                       <div
                         className={`h-2 rounded-full transition-all duration-300 ${
-                          piIsOver ? "bg-red-500"
-                          : piEnteredPct >= 100 ? "bg-green-500"
-                          : "bg-emerald-400"
+                          piIsOver
+                            ? "bg-red-500"
+                            : piEnteredPct >= 100
+                              ? "bg-green-500"
+                              : "bg-emerald-400"
                         }`}
                         style={{ width: `${Math.min(piEnteredPct, 100)}%` }}
                       ></div>
                     </div>
                     <div className="flex justify-between mt-1">
                       <span className="text-xs text-gray-400">
-                        {piEnteredPct > 0 ? `${parseFloat(piEnteredPct.toFixed(2))}% entered` : "Enter % or ₹ above"}
+                        {piEnteredPct > 0
+                          ? `${parseFloat(piEnteredPct.toFixed(2))}% entered`
+                          : "Enter % or ₹ above"}
                       </span>
                       <span className="text-xs text-gray-400">100%</span>
                     </div>
@@ -2126,16 +2181,28 @@ export default function QuotationPage() {
             {/* Footer */}
             <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex gap-3">
               <button
-                onClick={() => { setShowPIModal(false); setPiPercentage(""); setPiRupees(""); }}
+                onClick={() => {
+                  setShowPIModal(false);
+                  setPiPercentage("");
+                  setPiRupees("");
+                }}
                 className="flex-1 border border-gray-200 text-gray-600 hover:bg-gray-100 rounded-xl py-2.5 text-sm font-semibold transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreatePI}
-                disabled={isCreatingPI || !piPercentage || Number(piPercentage) <= 0 || Number(piPercentage) > 100}
+                disabled={
+                  isCreatingPI ||
+                  !piPercentage ||
+                  Number(piPercentage) <= 0 ||
+                  Number(piPercentage) > 100
+                }
                 className={`flex-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl py-2.5 text-sm font-semibold shadow-md shadow-emerald-200 transition-all flex justify-center items-center gap-2 ${
-                  (isCreatingPI || !piPercentage || Number(piPercentage) <= 0 || Number(piPercentage) > 100)
+                  isCreatingPI ||
+                  !piPercentage ||
+                  Number(piPercentage) <= 0 ||
+                  Number(piPercentage) > 100
                     ? "opacity-60 cursor-not-allowed"
                     : ""
                 }`}

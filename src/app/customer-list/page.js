@@ -11,6 +11,7 @@ import useAuth from "../components/useAuth";
 
 export default function CustomerList() {
   const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const router = useRouter(); // ✅ ADD THIS LINE
 
   useAuth();
 
@@ -47,8 +48,6 @@ export default function CustomerList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-
-
   // Store offset for each scrollable column
   const [columnOffsets, setColumnOffsets] = useState({
     company_name: 0,
@@ -70,7 +69,9 @@ export default function CustomerList() {
         ...filters,
       }).toString();
 
-      const res = await axios.get(`${API_BASE}/api/customers/get-customers?${query}`);
+      const res = await axios.get(
+        `${API_BASE}/api/customers/get-customers?${query}`,
+      );
 
       const result = res.data;
 
@@ -82,7 +83,7 @@ export default function CustomerList() {
     } catch (error) {
       console.error("Error fetching customers:", error);
     }
-  }
+  };
 
   // Fetching Active Industries
   useEffect(() => {
@@ -252,9 +253,11 @@ export default function CustomerList() {
             {/* <div className="overflow-x-auto">
               <table className="min-w-full w-8xl border border-gray-200 text-sm text-left custom-scroll"> */}
 
-     <div className="overflow-x-auto overflow-y-scroll max-h-[500px] custom-scroll " style={{overflowX: 'scroll'}}>
-                <table className="w-full text-sm w-8xl border border-gray-200 text-left custom-scroll">
-                
+            <div
+              className="overflow-x-auto overflow-y-scroll max-h-[500px] custom-scroll "
+              style={{ overflowX: "scroll" }}
+            >
+              <table className="w-full text-sm w-8xl border border-gray-200 text-left custom-scroll">
                 <thead className="bg-gray-50  border-b border-gray-200  text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   <tr>
                     <th className="px-3 py-2 text-center">#</th>
