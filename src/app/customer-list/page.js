@@ -35,6 +35,15 @@ export default function CustomerList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
+  // Store offset for each scrollable column
+  const [columnOffsets, setColumnOffsets] = useState({
+    company_name: 0,
+    customer_name: 0,
+    email: 0,
+    website: 0,
+    industry: 0,
+  });
+
   // Fetch table data
   const fetchCustomers = async () => {
     try {
