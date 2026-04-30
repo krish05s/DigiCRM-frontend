@@ -115,15 +115,28 @@ export default function CustomerList() {
     if (p >= 1 && p <= totalPages) setCurrentPage(p);
   };
 
-  // Delete handler
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API_BASE}/api/customers/${id}`);
+      const token = localStorage.getItem("token");
+
+      const res = await axios.delete(`${API_BASE}/api/customers/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("DELETE SUCCESS:", res.data);
+
       toast.success("Customer deleted successfully");
       fetchCustomers();
     } catch (error) {
+      console.error("FULL DELETE ERROR:", error);
+
+      if (error.response) {
+        console.error("Server Response:", error.response.data);
+      }
+
       toast.error("Failed to delete customer");
-      console.error("Delete error:", error);
     }
   };
 
