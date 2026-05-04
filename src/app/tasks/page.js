@@ -39,6 +39,8 @@ export default function Page() {
   const [token, setToken] = useState("");
   const [task, setTask] = useState([]);
   const [filters, setFilters] = useState({});
+  const [showTaskDeleteModal, setShowTaskDeleteModal] = useState(false);
+  const [taskDeleteId, setTaskDeleteId] = useState(null);
 
   const [showExportMenu, setShowExportMenu] = useState(false);
 
@@ -340,6 +342,27 @@ const exportToPDF = async () => {
 
     setShowForm(false);
     fetchData();
+  };
+  const handleDelete = (id) => {
+    setTaskDeleteId(id);
+    setShowTaskDeleteModal(true);
+  };
+
+  const confirmTaskDelete = async () => {
+    try {
+      await axios.delete(`${APIBase}/delete-task/${taskDeleteId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success("Task deleted successfully");
+      // ✅ Remove from UI instantly
+      setTasks((prev) => prev.filter((t) => t.id !== taskDeleteId));
+    } catch (err) {
+      console.log(err);
+      toast.error("Failed to delete task");
+    } finally {
+      setShowTaskDeleteModal(false);
+      setTaskDeleteId(null);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -656,14 +679,14 @@ const exportToPDF = async () => {
             placeholder="🔍 Search..."
             value={filters.search || ""}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-            className="border w-64 p-2 px-3 border-gray-300 text-gray-700 placeholder-gray-400 rounded-lg focus:ring-1 outline-none focus:ring-orange-200 transition-all text-sm"
+            className="border w-64 p-2 px-3 border-gray-300 text-gray-700 placeholder-gray-400 rounded-sm focus:ring-1 outline-none focus:ring-orange-200 transition-all text-sm"
           />
 
           {/* Export Button */}
           <div className="relative" ref={exportRef}>
             <button
               onClick={() => setShowExportMenu((prev) => !prev)}
-              className="flex items-center gap-2 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-gray-600 hover:text-blue-700 px-4 py-2 rounded-xl text-sm font-semibold tracking-wide transition-all shadow-sm"
+              className="flex items-center gap-2  px-4 py-2 rounded-sm bg-orange-50 text-orange-500  text-sm font-semibold tracking-wide transition-all shadow-sm"
             >
               <i className="bi bi-download text-base"></i>
               Export
@@ -675,12 +698,12 @@ const exportToPDF = async () => {
             </button>
 
             {showExportMenu && (
-              <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
+              <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-sm shadow-xl border border-gray-100 overflow-hidden z-50">
                 <button
                   onClick={exportToExcel}
                   className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-all"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-sm  flex items-center justify-center">
                     <i className="bi bi-file-earmark-excel text-green-600 text-sm"></i>
                   </div>
                   Export Excel
@@ -692,7 +715,7 @@ const exportToPDF = async () => {
                   onClick={exportToPDF}
                   className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-sm flex items-center justify-center">
                     <i className="bi bi-file-earmark-pdf text-red-600 text-sm"></i>
                   </div>
                   Export PDF
@@ -723,7 +746,7 @@ const exportToPDF = async () => {
           onChange={(e) =>
             setFilters({ ...filters, task_name: e.target.value })
           }
-          className="p-2 w-52 border text-gray-700 bg-white rounded-sm focus:ring-1 outline-none focus:ring-orange-200 transition-all border-gray-300 "
+          className="p-2 w-52 border text-gray-600 bg-white rounded-sm focus:ring-1  focus:ring-orange-200 transition-all focus:outline-none border-none"
         />
 
         {/* Status */}
@@ -731,7 +754,7 @@ const exportToPDF = async () => {
           name="status"
           value={filters.status || ""}
           onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-          className="p-2 w-52 border text-gray-700 bg-white rounded-sm focus:ring-1 outline-none focus:ring-orange-200 transition-all border-gray-300 "
+          className="p-2 w-52 border text-gray-400 bg-white rounded-sm focus:ring-1 focus:ring-orange-200 transition-all focus:outline-none border-none"
         >
           <option value="">Select Status</option>
 
@@ -747,7 +770,7 @@ const exportToPDF = async () => {
           name="priority"
           value={filters.priority || ""}
           onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
-          className="p-2 w-52 border text-gray-700 bg-white rounded-sm focus:ring-1 outline-none focus:ring-orange-200 transition-all border-gray-300 "
+          className="p-2 w-52 border text-gray-400 bg-white rounded-sm focus:ring-1 outline-none focus:ring-orange-200 transition-all focus:outline-none border-none"
         >
           <option value="">Select Priority</option>
           <option>High</option>
@@ -760,7 +783,7 @@ const exportToPDF = async () => {
           name="assignee"
           value={filters.assignee || "-"}
           onChange={(e) => setFilters({ ...filters, assignee: e.target.value })}
-          className="p-2 w-52 border text-gray-700 bg-white rounded-sm focus:ring-1 outline-none focus:ring-orange-200 transition-all border-gray-300 "
+          className="p-2 w-52 border text-gray-400 bg-white rounded-sm focus:ring-1 outline-none focus:ring-orange-200 transition-all focus:outline-none border-none"
         >
           <option value="">Select Assignee</option>
 
@@ -772,7 +795,7 @@ const exportToPDF = async () => {
         </select>
 
         {/* Start Date Range */}
-        <div className="flex items-center border bg-white rounded-sm px-2 border-gray-300  ">
+        <div className="flex items-center border bg-white rounded-sm px-2 border-gray-300  focus:outline-none border-none">
           <span className="mx-1 text-gray-400">Start Date</span>
           <input
             type="date"
@@ -780,12 +803,12 @@ const exportToPDF = async () => {
             onChange={(e) =>
               setFilters({ ...filters, start_from: e.target.value })
             }
-            className="p-2 w-32 border-gray-300 focus:outline-none  "
+            className="p-2 w-34 border-gray-300 focus:outline-none text-gray-400  "
           />
         </div>
 
         {/* Due Date Range */}
-        <div className="flex items-center border bg-white rounded-md px-2 border-gray-300 ">
+        <div className="flex items-center border bg-white rounded-md px-2 border-gray-300 focus:outline-none border-none">
           <span className="mx-1 text-gray-400">Due Date</span>
           <input
             type="date"
@@ -793,7 +816,7 @@ const exportToPDF = async () => {
             onChange={(e) =>
               setFilters({ ...filters, due_from: e.target.value })
             }
-            className="p-2 w-32 border-gray-300 focus:outline-none  "
+            className="p-2 w-34 border-gray-300 focus:outline-none text-gray-400  "
           />
         </div>
 
@@ -804,7 +827,7 @@ const exportToPDF = async () => {
           onChange={(e) =>
             setFilters({ ...filters, created_by_name: e.target.value })
           }
-          className="p-2 w-52 border text-gray-700 bg-white rounded-sm focus:ring-1 outline-none focus:ring-orange-200 transition-all border-gray-300 "
+          className="p-2 w-52 border text-gray-400 bg-white rounded-sm focus:ring-1 focus:outline-none focus:ring-orange-200 transition-all border-gray-300 border-none"
         >
           <option value="">Select Created By</option>
 
@@ -816,7 +839,7 @@ const exportToPDF = async () => {
         </select>
 
         {/* created Date Range */}
-        <div className="flex items-center border bg-white rounded-sm px-2 border-gray-300 ">
+        <div className="flex items-center border bg-white rounded-sm px-2 border-gray-300 focus:outline-none border-none">
           <span className="mx-1 text-gray-400">Created Date</span>
           <input
             type="date"
@@ -824,7 +847,7 @@ const exportToPDF = async () => {
             onChange={(e) =>
               setFilters({ ...filters, created_at: e.target.value })
             }
-            className="p-2 w-32 border-gray-300 focus:outline-none  "
+            className="p-2 w-34 border-gray-300 focus:outline-none text-gray-400  "
           />
         </div>
 
@@ -840,8 +863,14 @@ const exportToPDF = async () => {
 
       {/* Table */}
       <form className="p-1 mx-4">
-        <div className="bg-white shadow-md rounded-sm p-1 border border-gray-200">
-          <table className=" w-full text-sm text-left text-gray-700 border-collapse mt-2 mb-2">
+        {/* <div className="bg-white shadow-md rounded-sm p-1 border border-gray-200">
+          <table className=" w-full text-sm text-left text-gray-700 border-collapse mt-2 mb-2"> */}
+
+        <div
+          className="overflow-x-auto overflow-y-scroll max-h-[500px] custom-scroll p-1 bg-white"
+          style={{ overflowX: "scroll" }}
+        >
+          <table className="w-full text-sm  text-left text-gray-700 border-collapse mt-2 mb-2">
             <thead className="uppercase font-semibold text-xs tracking-wider bg-gray-50 border-b border-gray-100 text-gray-400">
               <tr>
                 <th className="py-3 px-5 w-10">#</th>
@@ -1538,6 +1567,62 @@ const exportToPDF = async () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Task Delete Confirmation Modal */}
+      {showTaskDeleteModal && (
+        <div className="fixed inset-0 bg-gray-900/40 z-50 flex justify-center items-center">
+          <div className="bg-white rounded-xl shadow-xl w-[380px] relative overflow-hidden">
+            {/* Header */}
+            <div className="bg-orange-50 px-5 py-3 flex items-center justify-between border-b border-orange-100">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-orange-500 inline-block"></span>
+                <span className="text-xs font-bold tracking-widest text-gray-700 uppercase">
+                  Delete Task
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTaskDeleteModal(false)}
+                className="text-orange-400 hover:text-orange-600 text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-6 flex flex-col items-center">
+              <div className="bg-orange-100 rounded-full p-4 mb-4">
+                <i className="bi bi-trash3 text-orange-500 text-2xl"></i>
+              </div>
+              <h3 className="text-center text-base font-bold text-gray-800 mb-1 uppercase tracking-wide">
+                {tasks.find((t) => t.id === taskDeleteId)?.task_name ||
+                  "This Task"}
+              </h3>
+              <p className="text-center text-sm text-gray-400 mb-6">
+                This action cannot be undone. Are you sure?
+              </p>
+
+              {/* Buttons */}
+              <div className="flex gap-3 w-full">
+                <button
+                  type="button"
+                  onClick={() => setShowTaskDeleteModal(false)}
+                  className="flex-1 py-2.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition-all text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmTaskDelete}
+                  className="flex-1 py-2.5 rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-all text-sm font-bold"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         </div>

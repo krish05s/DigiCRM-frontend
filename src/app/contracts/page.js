@@ -348,7 +348,7 @@ export default function Page() {
                     <div className="bg-white shadow-md rounded-2xl p-1 border border-gray-200">
                         <h3 className="mx-2 text-md mt-2">Contract Listing</h3>
                         <hr className="text-gray-300 mx-2 mt-2 mb-3" />
-                        <table className=" w-full text-sm text-left text-gray-700 border-collapse mt-2 mb-2">
+                        <table className=" w-full text-sm text-left text-gray-700 border-collapse mt-2 mb-2 custom-scroll">
                             <thead className="bg-gray-50 text-gray-900  text-xs">
                                 <tr>
                                     <th className="py-3 px-5 w-10">#</th>
