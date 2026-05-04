@@ -71,7 +71,6 @@ export default function Page() {
         } else if (item.status === "Lost") {
           finalStatus = "Lost";
         } else {
-          // all other statuses go to Pending
           finalStatus = "Pending";
         }
         return {
@@ -132,19 +131,14 @@ export default function Page() {
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
 
-      // Auto column width
       const colWidths = Object.keys(exportData[0] || {}).map((key) => ({
         wch: Math.max(key.length, 15),
       }));
       worksheet["!cols"] = colWidths;
 
       const now = new Date();
-
       const date = now.toISOString().split("T")[0];
-
-      // Direct HH:MM
       const time = now.toTimeString().slice(0, 5);
-
       const fileName = `Leads_${activeTab}_(${date})_${time}.xlsx`;
 
       XLSX.writeFile(workbook, fileName);
@@ -167,7 +161,6 @@ export default function Page() {
 
       const doc = new jsPDF({ orientation: "landscape" });
 
-      // Title
       doc.setFontSize(14);
       doc.setTextColor(40, 40, 40);
       doc.text(`Leads Report - ${activeTab}`, 14, 15);
@@ -219,13 +212,13 @@ export default function Page() {
           textColor: [40, 40, 40],
         },
         headStyles: {
-          fillColor: [234, 88, 12], // orange-600
+          fillColor: [234, 88, 12],
           textColor: [255, 255, 255],
           fontStyle: "bold",
           fontSize: 8,
         },
         alternateRowStyles: {
-          fillColor: [255, 247, 237], // orange-50
+          fillColor: [255, 247, 237],
         },
         columnStyles: {
           0: { cellWidth: 8 },
@@ -235,12 +228,8 @@ export default function Page() {
       });
 
       const now = new Date();
-
       const date = now.toISOString().split("T")[0];
-
-      // Direct HH:MM
       const time = now.toTimeString().slice(0, 5).replace("_", "-");
-
       const fileName = `Leads_${activeTab}_(${date})_${time}.pdf`;
 
       doc.save(fileName);
@@ -320,7 +309,7 @@ export default function Page() {
         return;
       }
 
-      setBtnLoading(true); // ✅ START spinner
+      setBtnLoading(true);
 
       const formData = new FormData();
 
@@ -352,7 +341,7 @@ export default function Page() {
       console.log(err);
       toast.error("Something went wrong");
     } finally {
-      setBtnLoading(false); // ✅ STOP spinner
+      setBtnLoading(false);
     }
   };
 
@@ -381,8 +370,6 @@ export default function Page() {
     }
   };
 
-  // Update function for files in multer
-
   const handleUpdate = async () => {
     try {
       if (
@@ -394,7 +381,7 @@ export default function Page() {
         return;
       }
 
-      setUpdateLoading(true); // 🔄 START spinner
+      setUpdateLoading(true);
 
       const formData = new FormData();
 
@@ -441,11 +428,9 @@ export default function Page() {
       toast.error("Failed to add follow-up ");
       console.log(err);
     } finally {
-      setUpdateLoading(false); // ✅ STOP spinner
+      setUpdateLoading(false);
     }
   };
-
-  //  DELETE HANDLERS for delete lead
 
   const openDeleteModal = (lead) => {
     setLeadToDelete(lead);
@@ -473,15 +458,12 @@ export default function Page() {
     }
   };
 
-  // When clicking edit we store lead data temporarily
   const handleEdit = async (lead) => {
     try {
-      // get token stored after login
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
         `${API_BASE}/api/lead/sales/leads/view-leads/${lead.lead_id}`,
-
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -491,10 +473,8 @@ export default function Page() {
 
       const leadData = res.data.lead;
 
-      // store correct ID based data
       sessionStorage.setItem(
         "editLead",
-
         JSON.stringify({
           lead_id: leadData.lead_id,
           company_name: leadData.company_name,
@@ -517,16 +497,6 @@ export default function Page() {
     }
   };
 
-  // view function
-
-  // const handleView = (lead) => {
-  //   // get token stored after login
-  //   const token = localStorage.getItem("token");
-
-  //   sessionStorage.setItem("viewLeadId", lead.lead_id);
-
-  //   router.push("/sales/lead/view-lead");
-  // };
   const handleView = async (lead) => {
     try {
       const token = localStorage.getItem("token");
@@ -594,17 +564,14 @@ export default function Page() {
     to_followup: "",
   });
 
-  // input change
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-
     setFilters((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  // API filter
   const searchLeads = async () => {
     try {
       const params = Object.fromEntries(
@@ -613,7 +580,6 @@ export default function Page() {
 
       const res = await axios.get(
         `${API_BASE}/api/lead/sales/leads/filter`,
-
         {
           params,
           headers: {
@@ -624,10 +590,8 @@ export default function Page() {
 
       const formatted = (res.data?.data || []).map((item) => {
         let finalStatus = "Pending";
-
         if (item.status === "Won") finalStatus = "Won";
         else if (item.status === "Lost") finalStatus = "Lost";
-
         return {
           ...item,
           status: finalStatus,
@@ -640,13 +604,11 @@ export default function Page() {
     }
   };
 
-  // debounce search
   useEffect(() => {
     const hasFilter = Object.values(filters).some((v) => v !== "");
 
     if (!hasFilter) {
       fetchLeads();
-
       return;
     }
 
@@ -661,7 +623,6 @@ export default function Page() {
     return () => clearTimeout(debounceRef.current);
   }, [filters]);
 
-  // reset filter
   const resetFilters = () => {
     setFilters({
       company_name: "",
@@ -683,30 +644,50 @@ export default function Page() {
 
   // ================= TAB + FILTER MERGE =================
 
-  // if filter applied → filter result by tab also
   const hasActiveFilters = Object.values(filters).some((v) => v !== "");
 
-  // show all filtered data in Pending tab
   const filteredLeads = hasActiveFilters
     ? leads
     : leads.filter((l) => {
         if (activeTab === "Pending") {
           return l.status !== "Won" && l.status !== "Lost";
         }
-
         return l.status === activeTab;
       });
 
-  // counts
   const pendingCount = leads.filter((l) => l.status === "Pending").length;
-
   const wonCount = leads.filter((l) => l.status === "Won").length;
-
   const lostCount = leads.filter((l) => l.status === "Lost").length;
 
+  // ================= PAGINATION =================
+
+  const [currentPage, setCurrentPage] = useState(1);
+  // ✅ itemsPerPage is now dynamic state (default 25)
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+
+  // Reset page when filters, tab, or items per page changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters, activeTab]);
+  }, [filters, activeTab, itemsPerPage]);
+
+  const paginatedLeads = filteredLeads.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
+  const totalPages = Math.ceil(filteredLeads.length / itemsPerPage);
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  // ✅ Items per page change handler
+  const handleItemsPerPageChange = (e) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1);
+  };
 
   // Dynamic Dropdowns
 
@@ -720,7 +701,6 @@ export default function Page() {
   const [companyname, setCompanyname] = useState([]);
   const [customername, setCustomername] = useState([]);
 
-  // Asignee dropdown api calling
   useEffect(() => {
     const fetchAssignee = async () => {
       try {
@@ -736,14 +716,13 @@ export default function Page() {
         setAssignee(cleanedData);
       } catch (err) {
         console.error("Failed to fetch names:", err);
-        setAssignee([]); // fallback
+        setAssignee([]);
       }
     };
 
     fetchAssignee();
   }, []);
 
-  // Dropdown for lead Source
   useEffect(() => {
     const fetchSource = async () => {
       try {
@@ -758,7 +737,6 @@ export default function Page() {
     fetchSource();
   }, []);
 
-  // Dropdown for lead Category
   useEffect(() => {
     const fetchCategory = async () => {
       try {
@@ -773,7 +751,6 @@ export default function Page() {
     fetchCategory();
   }, []);
 
-  // Dropdown for Product Category
   useEffect(() => {
     const fetchProductCategory = async () => {
       try {
@@ -787,25 +764,6 @@ export default function Page() {
     fetchProductCategory();
   }, []);
 
-  // PAGINATION
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const itemsPerPage = 10;
-
-  // apply pagination on filtered data
-  const paginatedLeads = filteredLeads.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
-  );
-
-  const totalPages = Math.ceil(filteredLeads.length / itemsPerPage);
-
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
-
   const isAdmin = checkRole(["Admin"]);
 
   return (
@@ -816,7 +774,6 @@ export default function Page() {
         {/* breadcrumb */}
 
         <div className="bg-white w-full border-gray-100 p-3 mt-1 mb-5 flex justify-between items-center">
-          {" "}
           <div className="flex items-center text-gray-700">
             <p>
               <Link
@@ -843,11 +800,10 @@ export default function Page() {
           </div>
           {/* Export Button */}
           <div className="flex items-center gap-3">
-            {/* Export Button */}
             <div className="relative" ref={exportRef}>
               <button
                 onClick={() => setShowExportMenu((prev) => !prev)}
-                className="flex items-center gap-2 border-orange-300 bg-orange-50 text-orange-500 px-4 py-2 rounded-sm text-sm font-semibold tracking-wide transition-all shadow-sm"
+                className="flex items-center gap-2  bg-orange-50 text-orange-500 px-4 py-2 rounded-sm text-sm font-semibold tracking-wide transition-all shadow-sm"
               >
                 <i className="bi bi-download text-base"></i>
                 Export
@@ -864,7 +820,7 @@ export default function Page() {
                     onClick={exportToExcel}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition-all"
                   >
-                    <div className="w-6 h-6 rounded-lg bg-green-100 flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-sm  flex items-center justify-center">
                       <i className="bi bi-file-earmark-excel text-green-600 text-sm"></i>
                     </div>
                     Export Excel
@@ -876,7 +832,7 @@ export default function Page() {
                     onClick={exportToPDF}
                     className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-sm  flex items-center justify-center">
                       <i className="bi bi-file-earmark-pdf text-red-600 text-sm"></i>
                     </div>
                     Export PDF
@@ -1042,7 +998,6 @@ export default function Page() {
                   : "text-gray-400 hover:text-gray-600"
               }`}
             >
-              {" "}
               Pending
               <span className="ml-2 bg-blue-100 text-blue-600 cursor-pointer text-xs px-2 py-0.5 rounded-full">
                 {pendingCount}
@@ -1089,10 +1044,8 @@ export default function Page() {
             {loading ? (
               <div className="text-center py-10 text-gray-400">Loading...</div>
             ) : (
-              // <div className="overflow-x-auto overflow-y-auto max-h-[500px]">
-              // <div className="overflow-x-auto  overflow-y-scroll max-h-[500px] custom-scroll">
-              <div className="overflow-x-auto overflow-y-scroll max-h-[500px] custom-scroll">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto overflow-y-scroll max-h-[600px] custom-scroll " style={{overflowX: 'scroll'}}>
+                <table className="w-full text-sm ">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
                       <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
@@ -1125,7 +1078,6 @@ export default function Page() {
                       <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                         Status
                       </th>
-
                       <th className="py-3 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                         Action
                       </th>
@@ -1228,12 +1180,11 @@ export default function Page() {
                                   setShowModal(true);
                                 }}
                                 className={`w-9 h-9 rounded-full border flex items-center justify-center mx-auto
-                                                                          ${
-                                                                            lead.status ===
-                                                                            "Pending"
-                                                                              ? "hover:bg-gray-100 cursor-pointer"
-                                                                              : "bg-gray-100 cursor-not-allowed opacity-60"
-                                                                          }`}
+                                  ${
+                                    lead.status === "Pending"
+                                      ? "hover:bg-gray-100 cursor-pointer"
+                                      : "bg-gray-100 cursor-not-allowed opacity-60"
+                                  }`}
                               >
                                 <i className="bi bi-plus text-lg"></i>
                               </button>
@@ -1253,7 +1204,7 @@ export default function Page() {
                                   (lead.status === "Won" ||
                                     lead.status === "Lost")
                                 ) {
-                                  e.preventDefault(); // stop dropdown open
+                                  e.preventDefault();
                                   toast.error("Only Admin can change Status");
                                 }
                               }}
@@ -1264,25 +1215,10 @@ export default function Page() {
                                 );
                               }}
                               className={`border rounded-sm px-3 py-1 text-xs font-semibold outline-none cursor-pointer
-
-                                ${
-                                  lead.status === "Pending"
-                                    ? "border-gray-200 bg-gray-50 text-gray-700 cursor-pointer"
-                                    : ""
-                                }
-
-                                ${
-                                  lead.status === "Won"
-                                    ? "border-green-200 bg-green-50 text-green-700 cursor-pointer"
-                                    : ""
-                                }
-
-                                ${
-                                  lead.status === "Lost"
-                                    ? "border-red-200 bg-red-50 text-red-700 cursor-pointer"
-                                    : ""
-                                }
-                                `}
+                                ${lead.status === "Pending" ? "border-gray-200 bg-gray-50 text-gray-700 cursor-pointer" : ""}
+                                ${lead.status === "Won" ? "border-green-200 bg-green-50 text-green-700 cursor-pointer" : ""}
+                                ${lead.status === "Lost" ? "border-red-200 bg-red-50 text-red-700 cursor-pointer" : ""}
+                              `}
                             >
                               <option value="Pending"> Pending </option>
                               <option value="Won"> Won </option>
@@ -1335,33 +1271,63 @@ export default function Page() {
                   </tbody>
                 </table>
 
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between px-6 py-3 border-gray-200 bg-white rounded-b-lg">
-                    {/* Previous Button */}
-                    <button
-                      type="button"
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="px-4 py-2 text-sm font-medium rounded-md border bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Previous
-                    </button>
+                {/* ✅ UPDATED PAGINATION WITH ITEMS PER PAGE DROPDOWN */}
+                {filteredLeads.length > 0 && (
+                  <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 bg-white rounded-b-lg">
 
-                    {/* Page Info Centered */}
-                    <span className="text-sm text-gray-600">
-                      Page <span className="font-semibold">{currentPage}</span>{" "}
-                      of <span className="font-semibold">{totalPages}</span>
-                    </span>
+                    {/* Left: Items per page dropdown */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-500">Show</span>
+                      <select
+                        value={itemsPerPage}
+                        onChange={handleItemsPerPageChange}
+                        className="border border-gray-200 rounded-md px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-orange-300 cursor-pointer"
+                      >
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                        <option value={200}>200</option>
+                      </select>
+                      <span className="text-sm text-gray-500">
+                        records — Total:{" "}
+                        <span className="font-semibold text-gray-700">
+                          {filteredLeads.length}
+                        </span>
+                      </span>
+                    </div>
 
-                    {/* Next Button */}
-                    <button
-                      type="button"
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="px-4 py-2 text-sm font-medium rounded-md border bg-blue-800 text-white hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Next
-                    </button>
+                    {/* Center: Page navigation (only show if more than 1 page) */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center gap-2">
+                        {/* Previous Button */}
+                        <button
+                          type="button"
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className="px-4 py-2 text-sm font-medium rounded-md border bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Previous
+                        </button>
+
+                        {/* Page Info */}
+                        <span className="text-sm text-gray-600 px-2">
+                          Page{" "}
+                          <span className="font-semibold">{currentPage}</span>{" "}
+                          of{" "}
+                          <span className="font-semibold">{totalPages}</span>
+                        </span>
+
+                        {/* Next Button */}
+                        <button
+                          type="button"
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className="px-4 py-2 text-sm font-medium rounded-md border bg-blue-800 text-white hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1369,8 +1335,6 @@ export default function Page() {
           </div>
         </div>
       </div>
-
-      {/* Multer Popup Model Code */}
 
       {/* ✅ DELETE CONFIRMATION MODAL */}
       {showDeleteModal && leadToDelete && (
@@ -1491,7 +1455,6 @@ export default function Page() {
                   className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50 transition-all"
                 >
                   <option value="">Select User</option>
-
                   {assignee.map((item) => (
                     <option key={item.id} value={item.name}>
                       {item.name}
@@ -1571,12 +1534,8 @@ export default function Page() {
               <button
                 onClick={handleSubmit}
                 disabled={btnLoading}
-                className={`px-6 py-2 text-sm font-semibold text-white rounded-xl transition-all shadow-md shadow-orange-200 flex items-center justify-center gap-2
-  ${
-    btnLoading
-      ? "bg-orange-400 cursor-not-allowed"
-      : "bg-orange-500 hover:bg-orange-600"
-  }`}
+                className={`px-6 py-2 text-sm font-semibold text-white rounded-xl transition-all shadow-md shadow-orange-200 flex items-center gap-2
+                ${btnLoading ? "bg-orange-400 cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600"}`}
               >
                 {btnLoading ? (
                   <svg
@@ -1600,6 +1559,7 @@ export default function Page() {
                 ) : (
                   "Add"
                 )}
+                {btnLoading ? "Adding..." : "Add"}
               </button>
             </div>
           </div>
@@ -1688,7 +1648,6 @@ export default function Page() {
                       className="w-full mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-1 focus:ring-orange-300 outline-none bg-gray-50"
                     >
                       <option value="">Select User</option>
-
                       {assignee.map((item) => (
                         <option key={item.id} value={item.name}>
                           {item.name}
@@ -1908,12 +1867,8 @@ export default function Page() {
               <button
                 onClick={handleUpdate}
                 disabled={updateLoading}
-                className={`w-36 px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all shadow-md shadow-orange-200 flex items-center justify-center gap-2
-  ${
-    updateLoading
-      ? "bg-orange-400 cursor-not-allowed"
-      : "bg-orange-500 hover:bg-orange-600"
-  }`}
+                className={`px-6 py-2 rounded-xl text-sm font-semibold text-white transition-all shadow-md shadow-orange-200 flex items-center gap-2
+                ${updateLoading ? "bg-orange-400 cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600"}`}
               >
                 {updateLoading ? (
                   <svg
@@ -1937,14 +1892,14 @@ export default function Page() {
                 ) : (
                   "Add Follow-Up"
                 )}
+                {updateLoading ? "Adding..." : "Add Follow-Up"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* FILE UPLOAD MODAL */}
-
+      {/* STATUS CHANGE POPUP */}
       {showPopup && (
         <div className="fixed inset-0 bg-gray-900/30  flex items-center justify-center backdrop-blur-sm  z-50">
           <div className="bg-white rounded-lg shadow-lg p-6 w-80">
@@ -1974,38 +1929,7 @@ export default function Page() {
         </div>
       )}
 
-      {/* Multer Popup Model Code */}
-
-      {showPopup && (
-        <div className="fixed inset-0 bg-gray-900/30 z-40 bg-opacity-30 flex items-center justify-center">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-80">
-            <h2 className="text-lg font-semibold mb-3 text-center">
-              Confirm Status Change
-            </h2>
-
-            <p className="text-sm text-gray-600 mb-5">
-              Are you sure you want to change status?
-            </p>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={confirmStatusChange}
-                className="px-4 py-2 text-sm bg-blue-600 text-white rounded"
-              >
-                Yes Change
-              </button>
-
-              <button
-                onClick={() => setShowPopup(false)}
-                className="px-4 py-2 text-sm border rounded"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* file upload modal */}
+      {/* FILE UPLOAD MODAL */}
       {showFileModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/30">
           <div className="bg-white w-[580px] rounded-sm shadow-2xl border border-gray-100 overflow-hidden">
@@ -2013,7 +1937,7 @@ export default function Page() {
             <div className="flex justify-between items-center px-6 py-4 from-orange-100 to-white border-b border-gray-100 bg-gradient-to-r">
               <div className="flex items-center gap-2">
                 <i className="bi bi-cloud-upload text-orange-500 text-base"></i>
-                <h2 className="text-sm font-semibold text-white uppercase tracking-wide">
+                <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
                   Upload Files
                 </h2>
               </div>
@@ -2022,7 +1946,7 @@ export default function Page() {
                 className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-orange-100 text-gray-400 hover:text-orange-500 transition-all"
               >
                 ✕
-              </button>{" "}
+              </button>
             </div>
 
             {/* Body */}
@@ -2170,7 +2094,7 @@ export default function Page() {
                   <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
                     Source
                   </p>
-                  <p className="text-sm font-semibold text-gray-700     ">
+                  <p className="text-sm font-semibold text-gray-700">
                     {viewLead.source || "—"}
                   </p>
                 </div>
@@ -2244,7 +2168,6 @@ export default function Page() {
                   <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
                     Lead Title
                   </p>
-
                   <p className="text-sm font-semibold text-gray-700 break-words whitespace-normal">
                     {viewLead.lead_title || "—"}
                   </p>

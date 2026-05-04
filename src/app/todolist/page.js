@@ -13,7 +13,6 @@ const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 const API_base = `${API_BASE}/api/todos`;
 
-
 export default function Page() {
   const [todos, setTodos] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -34,8 +33,6 @@ export default function Page() {
     }
     return { headers: { Authorization: `Bearer ${token}` } };
   };
-
-
 
   // Fetch all todos
   const fetchTodos = useCallback(async () => {
@@ -76,45 +73,45 @@ export default function Page() {
   const closeModal = () => setShowModal(false);
 
   // Add or update todo
-const handleSave = async (e) => {
-  e.preventDefault();
-  if (!currentTodo.title.trim()) return;
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!currentTodo.title.trim()) return;
 
-  try {
-    setIsSubmitting(true); // ✅ START
+    try {
+      setIsSubmitting(true); // ✅ START
 
-    const config = getConfig();
-    if (!config) return;
+      const config = getConfig();
+      if (!config) return;
 
-    if (isEditing) {
-      await axios.put(
-        `${API_base}/update/${currentTodo.id}`,
-        { title: currentTodo.title },
-        config,
-      );
-    } else {
-      await axios.post(
-        `${API_base}/insert`,
-        { title: currentTodo.title },
-        config,
-      );
+      if (isEditing) {
+        await axios.put(
+          `${API_base}/update/${currentTodo.id}`,
+          { title: currentTodo.title },
+          config,
+        );
+      } else {
+        await axios.post(
+          `${API_base}/insert`,
+          { title: currentTodo.title },
+          config,
+        );
+      }
+
+      closeModal();
+      fetchTodos();
+    } catch (err) {
+      console.error("Error saving todo:", err);
+      if (
+        err.response &&
+        (err.response.status === 401 || err.response.status === 403)
+      ) {
+        localStorage.removeItem("token");
+        router.push("/");
+      }
+    } finally {
+      setIsSubmitting(false); // ✅ STOP
     }
-
-    closeModal();
-    fetchTodos();
-  } catch (err) {
-    console.error("Error saving todo:", err);
-    if (
-      err.response &&
-      (err.response.status === 401 || err.response.status === 403)
-    ) {
-      localStorage.removeItem("token");
-      router.push("/");
-    }
-  } finally {
-    setIsSubmitting(false); // ✅ STOP
-  }
-};
+  };
 
   // Toggle finish/unfinish
   const handleToggle = async (id) => {
@@ -301,16 +298,16 @@ const handleSave = async (e) => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-0 opacity-0 group-hover:opacity-100 transition-opacity ">
+                  <div className="flex gap-1">
                     <button
                       onClick={() => openModal(t)}
-                      className="p-1  text-gray-400 hover:text-blue-800 "
+                      className="p-1.5  text-gray-300 hover:text-blue-600  transition-all "
                     >
                       <i className="bi bi-pencil-square text-md"></i>
                     </button>
                     <button
                       onClick={() => handleDelete(t.id)}
-                      className="p-1  text-gray-400 hover:text-red-600 "
+                      className="p-1.5  text-gray-300 hover:text-red-600  transition-all "
                     >
                       <i className="bi bi-trash3 text-md"></i>
                     </button>
